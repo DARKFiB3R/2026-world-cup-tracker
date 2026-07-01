@@ -1692,19 +1692,27 @@ function renderFixtures(st) {
   }
 
   // KO rounds in order
-  for (const stage of KO_STAGES) {
+  const KO_BEFORE_FINAL = ['LAST_32','LAST_16','QUARTER_FINALS','SEMI_FINALS','THIRD_PLACE'];
+  const knownStages = new Set([...KO_STAGES, 'GROUP_STAGE']);
+  const unknownMatches = upcoming.filter(m=>!knownStages.has(m.stage));
+
+  for (const stage of KO_BEFORE_FINAL) {
     const matches = upcoming.filter(m=>m.stage===stage);
     if (!matches.length) continue;
     html += `<div class="sec-hdr">${KO_LONG[stage]||stage}</div>`;
     html += matches.map(makeCard).join('');
   }
 
-  // Catch-all: anything with an unrecognised stage (e.g. new ESPN slug)
-  const knownStages = new Set([...KO_STAGES, 'GROUP_STAGE']);
-  const unknown = upcoming.filter(m=>!knownStages.has(m.stage));
-  if (unknown.length) {
-    html += `<div class="sec-hdr">Other Fixtures</div>`;
-    html += unknown.map(makeCard).join('');
+  // Unknown stage — almost certainly Third Place Playoff with an unrecognised ESPN slug
+  if (unknownMatches.length) {
+    html += `<div class="sec-hdr">${KO_LONG['THIRD_PLACE']}</div>`;
+    html += unknownMatches.map(makeCard).join('');
+  }
+
+  const finalMatches = upcoming.filter(m=>m.stage==='FINAL');
+  if (finalMatches.length) {
+    html += `<div class="sec-hdr">${KO_LONG['FINAL']}</div>`;
+    html += finalMatches.map(makeCard).join('');
   }
 
   if (!liveMatches.length && !upcoming.length) {
@@ -2043,7 +2051,19 @@ function renderResults(st) {
   let html = '';
 
   // KO rounds most recent first (most dramatic first)
-  for (const stage of [...KO_STAGES].reverse()) {
+  const knownKO = new Set(KO_STAGES);
+  const unknownFinished = finished.filter(m=>m.stage!=='GROUP_STAGE' && !knownKO.has(m.stage));
+
+  // Order: Final → Third Place → unknown (also third place) → SF → QF → R2 → R1
+  const KO_DISPLAY_ORDER = ['FINAL','THIRD_PLACE','SEMI_FINALS','QUARTER_FINALS','LAST_16','LAST_32'];
+  for (const stage of KO_DISPLAY_ORDER) {
+    if (stage === 'THIRD_PLACE') {
+      // Show real THIRD_PLACE matches first, then unknown-stage (same match, different ESPN slug)
+      const real = finished.filter(m=>m.stage===stage);
+      if (real.length) { html += `<div class="sec-hdr">${KO_LONG[stage]}</div>`; html += real.map(makeCard).join(''); }
+      if (unknownFinished.length) { html += `<div class="sec-hdr">${KO_LONG['THIRD_PLACE']}</div>`; html += unknownFinished.map(makeCard).join(''); }
+      continue;
+    }
     const matches = finished.filter(m=>m.stage===stage);
     if (!matches.length) continue;
     html += `<div class="sec-hdr">${KO_LONG[stage]||stage}</div>`;
