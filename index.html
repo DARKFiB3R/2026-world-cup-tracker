@@ -470,6 +470,37 @@ body[data-theme="light"] .lc-headline { color: #6b7280; }
 /* ── LIVE ZONE ── */
 #live-zone { display: none; background: var(--lz-bg); backdrop-filter: blur(14px); border-bottom: 1px solid var(--border); }
 #live-zone.visible { display: block; }
+#live-detail {
+  display: none; overflow: hidden;
+  background: var(--surface-a);
+  border-bottom: 1px solid var(--border);
+  transition: max-height .3s ease;
+}
+#live-detail.open { display: block; }
+.ld-inner { padding: 14px 14px 18px; }
+.ld-close { float: right; background: none; border: none; color: var(--text-dim); font-size: 1.1rem; cursor: pointer; padding: 0; line-height: 1; margin-top: -2px; }
+.ld-teams { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; margin-bottom: 12px; }
+.ld-team { display: flex; flex-direction: column; align-items: center; gap: 5px; text-align: center; }
+.ld-team-name { font-size: .78rem; font-weight: 700; }
+.ld-score { font-size: 2.2rem; font-weight: 900; text-align: center; line-height: 1; letter-spacing: -1px; }
+.ld-clock { font-size: .68rem; color: #e74c3c; font-weight: 700; text-align: center; margin-top: 2px; }
+.ld-events { margin-bottom: 10px; }
+.ld-ev { display: flex; gap: 8px; align-items: center; font-size: .75rem; padding: 4px 0; border-bottom: 1px solid var(--border-soft); color: var(--text); }
+.ld-ev:last-child { border-bottom: none; }
+.ld-ev-min { min-width: 32px; color: var(--text-dim); font-size: .68rem; }
+.ld-ev-player { flex: 1; }
+.ld-ev-team { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.ld-stat-block { margin-top: 10px; }
+.ld-poss-lbl { display: flex; justify-content: space-between; font-size: .65rem; color: var(--text-dim); margin-bottom: 3px; }
+.ld-poss-bar { height: 4px; background: var(--border); border-radius: 2px; margin-bottom: 8px; overflow: hidden; }
+.ld-poss-fill { height: 100%; border-radius: 2px; transition: width .4s ease; }
+.ld-stat-row { display: flex; align-items: center; font-size: .72rem; padding: 3px 0; }
+.ld-stat-val { width: 28px; font-weight: 700; }
+.ld-stat-val.r { text-align: right; }
+.ld-stat-lbl { flex: 1; text-align: center; color: var(--text-dim); font-size: .65rem; }
+.ld-venue { font-size: .62rem; color: var(--text-dim); text-align: center; margin-top: 10px; }
+body[data-theme="light"] .ld-score { color: #0d2137; }
+body[data-theme="light"] .ld-clock { color: #dc2626; }
 .lz-live-header { display: flex; align-items: center; gap: 6px; padding: 9px 16px 0; }
 .lz-dot { width: 7px; height: 7px; border-radius: 50%; background: #e74c3c; animation: blink 1s infinite; flex-shrink: 0; }
 .lz-header-text { font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: #ff6b6b; }
@@ -734,6 +765,7 @@ body.final-chrome-hidden .stats-strip-wrap,
 body.final-chrome-hidden .search-wrap,
 body.final-chrome-hidden .tab-bar-wrap,
 body.final-chrome-hidden #live-zone,
+body.final-chrome-hidden #live-detail,
 body.final-chrome-hidden #update-bar,
 body.final-chrome-hidden #inapp-banner { display: none !important; }
 
@@ -953,6 +985,7 @@ body[data-theme="light"] .modal-team-name { color:#111827; }
 <div id="update-bar" onclick="window.location.reload()">🔄 New version available — <strong>tap to update</strong></div>
 <div id="inapp-banner" style="cursor:pointer">👆 Tap here to open in your browser for best experience</div>
 <div id="live-zone"></div>
+<div id="live-detail"></div>
 
 
 <div class="stats-strip-wrap">
@@ -2353,6 +2386,75 @@ function showMatchCentre() {
   switchTab('fixtures');
 }
 
+// ── LIVE DETAIL PANEL ─────────────────────────────────────────────────────────
+let _liveDetailMatch = null; // {home, away}
+
+function showLiveDetail(home, away) {
+  if (!lastState) return;
+  const m = lastState.allMatches.find(x =>
+    (norm(x.home)===norm(home)||x.home===home) &&
+    (norm(x.away)===norm(away)||x.away===away)
+  );
+  if (!m) return;
+
+  // Toggle: clicking same match again closes panel
+  const panel = document.getElementById('live-detail');
+  if (_liveDetailMatch?.home===home && _liveDetailMatch?.away===away && panel.classList.contains('open')) {
+    closeLiveDetail(); return;
+  }
+  _liveDetailMatch = {home, away};
+
+  const h = norm(m.home), a = norm(m.away);
+  const hC = lastTeams[h]?.color||'#2ecc71', aC = lastTeams[a]?.color||'#3498db';
+  const isLive = m.status==='IN_PLAY'||m.status==='PAUSED';
+
+  const goals = (m.events||[]).filter(e=>e.type==='goal');
+  const reds  = (m.events||[]).filter(e=>e.type==='redcard');
+  const evs   = [...goals,...reds].sort((a,b)=>(parseInt(a.minute)||0)-(parseInt(b.minute)||0));
+
+  const evHtml = evs.length ? `<div class="ld-events">${evs.map(e=>{
+    const isH = norm(e.team)===h;
+    const icon = e.type==='redcard' ? '🟥' : e.ownGoal ? '⚽ (og)' : e.penalty ? '⚽ (pen)' : '⚽';
+    return `<div class="ld-ev">
+      <span class="ld-ev-min">${e.minute}'</span>
+      <span class="ld-ev-player">${icon} ${e.player}</span>
+      <div class="ld-ev-team" style="background:${isH?hC:aC}"></div>
+    </div>`;
+  }).join('')}</div>` : '';
+
+  const mst = m.stats||{}, hst = mst[h], ast = mst[a];
+  const statsHtml = hst ? `<div class="ld-stat-block">
+    <div class="ld-poss-lbl"><span>${hst.possession}%</span><span>Possession</span><span>${ast?.possession||0}%</span></div>
+    <div class="ld-poss-bar"><div class="ld-poss-fill" style="width:${hst.possession}%;background:${hC}"></div></div>
+    <div class="ld-stat-row"><span class="ld-stat-val">${hst.shots}</span><span class="ld-stat-lbl">Shots</span><span class="ld-stat-val r">${ast?.shots||0}</span></div>
+    <div class="ld-stat-row"><span class="ld-stat-val">${hst.shotsOnTarget}</span><span class="ld-stat-lbl">On Target</span><span class="ld-stat-val r">${ast?.shotsOnTarget||0}</span></div>
+    ${hst.corners!=null?`<div class="ld-stat-row"><span class="ld-stat-val">${hst.corners}</span><span class="ld-stat-lbl">Corners</span><span class="ld-stat-val r">${ast?.corners||0}</span></div>`:''}
+  </div>` : '';
+
+  const venueHtml = m.venue ? `<div class="ld-venue">📍 ${m.venue}${m.attendance?` · 👥 ${m.attendance.toLocaleString()}`:''}</div>` : '';
+
+  panel.innerHTML = `<div class="ld-inner">
+    <button class="ld-close" onclick="closeLiveDetail()">✕</button>
+    <div class="ld-teams">
+      <div class="ld-team">${teamCrest(h,'crest')}<div class="ld-team-name">${h}</div></div>
+      <div>
+        <div class="ld-score">${m.homeScore??0} – ${m.awayScore??0}</div>
+        ${isLive?`<div class="ld-clock">🔴 ${m.clock||'LIVE'}</div>`:'<div class="ld-clock" style="color:var(--text-dim)">FT</div>'}
+      </div>
+      <div class="ld-team">${teamCrest(a,'crest')}<div class="ld-team-name">${a}</div></div>
+    </div>
+    ${evHtml}
+    ${statsHtml}
+    ${venueHtml}
+  </div>`;
+  panel.classList.add('open');
+}
+
+function closeLiveDetail() {
+  _liveDetailMatch = null;
+  document.getElementById('live-detail').classList.remove('open');
+}
+
 
 // ── BANNER & STATS ────────────────────────────────────────────────────────────
 function renderBanner(st) {
@@ -2412,7 +2514,7 @@ function renderBanner(st) {
         ? `<div class="lz-date-row">${fmtCardDate(m.utcDate)} · ${fmtTime(m.utcDate)}</div>`
         : `<div class="lz-card-meta lz-meta-centered"><div class="lz-next-label">Next match · ${slbl(m)}</div></div>`;
 
-    return `<div class="${cls}" onclick="${isDone?"switchTab('results')":"showMatchCentre()"}">
+    return `<div class="${cls}" onclick="${isDone?"switchTab('results')":`showLiveDetail('${escQ(h)}','${escQ(a)}')`}">
       ${topRow}
       <div class="lz-teams-row">
         <div class="lz-side">${teamCrest(h,'lz-crest')}<div class="lz-name${hS?' lz-synd':''}">${starTeam(h)}${h}</div>${hFate}</div>
@@ -2654,6 +2756,10 @@ async function update() {
     lastState=processMatches(matches);
     renderStats(lastState);
     renderBanner(lastState);
+    // Refresh live detail panel if open
+    if (_liveDetailMatch && document.getElementById('live-detail')?.classList.contains('open')) {
+      showLiveDetail(_liveDetailMatch.home, _liveDetailMatch.away);
+    }
     renderCurrentTab();
 
     const t = new Date();
