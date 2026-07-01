@@ -1065,7 +1065,10 @@ const ESPN_URL = 'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.worl
 const SLUG_TO_STAGE = {
   'group-stage':'GROUP_STAGE','round-of-32':'LAST_32','round-of-16':'LAST_16',
   'quarterfinals':'QUARTER_FINALS','semifinals':'SEMI_FINALS',
-  '3rd-place':'THIRD_PLACE','third-place':'THIRD_PLACE','final':'FINAL',
+  '3rd-place':'THIRD_PLACE','third-place':'THIRD_PLACE',
+  'third-place-playoff':'THIRD_PLACE','3rd-place-playoff':'THIRD_PLACE',
+  'bronze-final':'THIRD_PLACE','bronze':'THIRD_PLACE','playoff':'THIRD_PLACE',
+  'final':'FINAL',
 };
 
 // ── IN-APP BROWSER ────────────────────────────────────────────────────────────
@@ -1676,13 +1679,13 @@ function renderFixtures(st) {
   // Group stage — one section per group A→L, soonest first within
   const groups = {};
   for (const m of upcoming) {
-    if (m.stage !== 'GROUP_STAGE') continue;
-    const g = m.group||'GROUP_UNKNOWN';
+    if (m.stage !== 'GROUP_STAGE' || !m.group) continue;
+    const g = m.group;
     if (!groups[g]) groups[g] = [];
     groups[g].push(m);
   }
   for (const g of Object.keys(groups).sort()) {
-    const label = 'Group ' + (g==='GROUP_UNKNOWN' ? '?' : g.replace('GROUP_',''));
+    const label = 'Group ' + g.replace('GROUP_','');
     const matches = groups[g];
     html += `<div class="sec-hdr">${label}</div>`;
     html += matches.map(makeCard).join('');
@@ -1694,6 +1697,14 @@ function renderFixtures(st) {
     if (!matches.length) continue;
     html += `<div class="sec-hdr">${KO_LONG[stage]||stage}</div>`;
     html += matches.map(makeCard).join('');
+  }
+
+  // Catch-all: anything with an unrecognised stage (e.g. new ESPN slug)
+  const knownStages = new Set([...KO_STAGES, 'GROUP_STAGE']);
+  const unknown = upcoming.filter(m=>!knownStages.has(m.stage));
+  if (unknown.length) {
+    html += `<div class="sec-hdr">Other Fixtures</div>`;
+    html += unknown.map(makeCard).join('');
   }
 
   if (!liveMatches.length && !upcoming.length) {
@@ -2041,13 +2052,13 @@ function renderResults(st) {
 
   // Group stage — most recent group first, most recent match within each group first
   const groups = {};
-  for (const m of finished.filter(m=>m.stage==='GROUP_STAGE')) {
-    const g = m.group||'GROUP_UNKNOWN';
+  for (const m of finished.filter(m=>m.stage==='GROUP_STAGE' && m.group)) {
+    const g = m.group;
     if (!groups[g]) groups[g] = [];
     groups[g].push(m);
   }
   for (const g of Object.keys(groups).sort().reverse()) {
-    const label = 'Group ' + (g==='GROUP_UNKNOWN' ? '?' : g.replace('GROUP_',''));
+    const label = 'Group ' + g.replace('GROUP_','');
     html += `<div class="sec-hdr">${label}</div>`;
     html += groups[g].map(makeCard).join('');
   }
@@ -2507,7 +2518,7 @@ function parseESPN(data) {
     }
 
     const slug=ev.season?.slug||'group-stage';
-    const stage=SLUG_TO_STAGE[slug]||'GROUP_STAGE';
+    const stage=SLUG_TO_STAGE[slug]||(slug.includes('group')?'GROUP_STAGE':'UNKNOWN');
     let group=null;
     const alt=comp.altGameNote||'';
     if(alt.includes('Group')&&stage==='GROUP_STAGE'){
