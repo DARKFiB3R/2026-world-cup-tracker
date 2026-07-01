@@ -936,7 +936,7 @@ body[data-theme="light"] .modal-team-name { color:#111827; }
 
 <header>
   <img class="header-logo" src="logos/wc2026-logo.png" alt="FIFA World Cup 2026">
-  <div class="header-title" onclick="switchTab('teamstats')">
+  <div class="header-title" onclick="switchTab('fixtures')">
     <div class="header-title-top">World Cup 2026</div>
     <div class="header-title-bottom">USA · Canada · Mexico</div>
   </div>
@@ -978,9 +978,9 @@ body[data-theme="light"] .modal-team-name { color:#111827; }
 
 <div class="tab-bar-wrap">
 <nav class="tab-bar">
-  <button class="tab-btn active" onclick="switchTab('teamstats')">📊 Teams</button>
-  <button class="tab-btn"        onclick="switchTab('fixtures')">⚽ Fixtures</button>
+  <button class="tab-btn active" onclick="switchTab('fixtures')">⚽ Fixtures</button>
   <button class="tab-btn"        onclick="switchTab('results')">✅ Results</button>
+  <button class="tab-btn"        onclick="switchTab('teamstats')">📊 Teams</button>
   <button class="tab-btn"        onclick="switchTab('boot')">👟 Golden Boot</button>
   <button class="tab-btn"        onclick="switchTab('groups')">📋 Group Stages</button>
   <button class="tab-btn"        onclick="switchTab('about')">ℹ️ About</button>
@@ -1174,7 +1174,7 @@ let lastScorers  = {};   // normName → [{player,goals,assists}]
 let lastTeams    = {};   // normName → {color,altColor,logo,form}
 let lastSquads   = {};   // normName → [{name,shirt,position}]
 let activeFilter = null;
-let activeTab    = 'teamstats';
+let activeTab    = 'fixtures';
 let modalTeam    = null;
 let modalTab     = 'overview';
 
@@ -1442,7 +1442,7 @@ function toggleFilter(f) {
 }
 
 // ── TABS ──────────────────────────────────────────────────────────────────────
-const ALL_TABS = ['teamstats','fixtures','results','boot','groups','about'];
+const ALL_TABS = ['fixtures','results','teamstats','boot','groups','about'];
 
 function switchTab(tab) {
   activeTab = tab;
