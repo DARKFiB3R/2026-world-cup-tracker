@@ -2355,10 +2355,10 @@ function renderBanner(st) {
     ...upcoming.map(m => makeCard(m, 'upcoming')),
   ];
 
-  const single = allCards.length === 1 ? ' lz-single' :''
+  const single = allCards.length === 1 ? ' lz-single' : '';
   const hdr = live.length
     ? `<div class="lz-live-header"><div class="lz-dot"></div><div class="lz-header-text">${live.length} game${live.length!==1?'s':''} live now</div></div>`
-    : 
+    : '';
 
   b.innerHTML = hdr + `<div class="lz-scroll${single}" id="lz-main-scroll">${allCards.join('')}</div>`;
   b.className = 'visible';
