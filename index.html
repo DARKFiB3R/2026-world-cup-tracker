@@ -2381,7 +2381,7 @@ function closeModal(e) { if(e.target===document.getElementById('overlay')) close
 function closeModalForce() { document.getElementById('overlay').classList.remove('open'); }
 
 // ── LIVE ZONE CLICK DELEGATION ────────────────────────────────────────────────
-// Handles clicks on live/upcoming cards via data attributes (avoids onclick quoting hell)
+// Uses capture phase (true) so it fires before the drag-scroll click suppressor
 (function() {
   document.addEventListener('click', function(e) {
     const card = e.target.closest('[data-lhome]');
@@ -2389,7 +2389,7 @@ function closeModalForce() { document.getElementById('overlay').classList.remove
     const home = card.dataset.lhome;
     const away = card.dataset.laway;
     if (home && away) showLiveDetail(home, away);
-  });
+  }, true);
 })();
 function showMatchCentre() {
   if (!lastState) return;
@@ -3062,8 +3062,14 @@ setInterval(checkPageVersion, 3 * 60 * 1000); // then every 3 minutes
   document.addEventListener('pointerleave', endDrag);
 
   // Suppress the click that would normally fire on a card/button right after a drag
+  // but never suppress clicks on live match cards (they use data-lhome for expansion)
   document.addEventListener('click', function(e) {
-    if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; }
+    if (moved) {
+      if (!e.target.closest('[data-lhome]')) {
+        e.stopPropagation(); e.preventDefault();
+      }
+      moved = false;
+    }
   }, true);
 })();
 
