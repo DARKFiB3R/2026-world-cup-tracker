@@ -242,9 +242,26 @@ header {
 .header-right { text-align: right; flex-shrink: 0; }
 #live-label { font-size: .63rem; color:rgba(255,255,255,0.78); display: block; }
 #last-updated { font-size: .57rem; color:rgba(255,255,255,0.56); margin-top: 2px; display: block; }
-#theme-toggle { position: absolute; top: 11px; right: 7px; display: flex; gap: 3px; cursor: pointer; z-index: 10; }
+#theme-toggle { position: absolute; top: 11px; right: 36px; display: flex; gap: 3px; cursor: pointer; z-index: 10; }
 .tt-icon { font-size: 1rem; line-height: 1; transition: filter .2s, opacity .2s; display: inline-block; }
 .tt-icon.inactive { filter: grayscale(1); opacity: .28; }
+#about-btn { position: absolute; top: 11px; right: 8px; background: none; border: none; cursor: pointer; font-size: 1rem; line-height: 1; opacity: .55; padding: 0; z-index: 10; transition: opacity .15s; }
+#about-btn:hover { opacity: 1; }
+/* About page */
+.about-page { padding: 20px 16px 40px; max-width: 500px; margin: 0 auto; }
+.about-logo { display: block; width: 80px; margin: 0 auto 16px; }
+.about-title { font-size: 1.5rem; font-weight: 900; font-family: 'Karma', serif; color: #F7DB8D; text-align: center; margin-bottom: 4px; }
+.about-sub { text-align: center; font-size: .8rem; color: var(--text-dim); margin-bottom: 28px; }
+.about-section { margin-bottom: 22px; }
+.about-section-title { font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-dim); margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
+.about-card { background: var(--surface-b); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 8px; }
+.about-card-title { font-size: .88rem; font-weight: 700; margin-bottom: 3px; }
+.about-card-body { font-size: .78rem; color: var(--text-dim); line-height: 1.5; }
+.about-card-body a { color: #2ecc71; text-decoration: none; }
+.about-card-body a:hover { text-decoration: underline; }
+.about-tag { display: inline-block; background: rgba(39,174,96,.15); color: #2ecc71; font-size: .65rem; font-weight: 600; padding: 2px 8px; border-radius: 20px; margin-top: 6px; margin-right: 4px; border: 1px solid rgba(39,174,96,.25); }
+body[data-theme="light"] .about-card-body a { color: #16a34a; }
+body[data-theme="light"] .about-tag { background: rgba(22,163,74,.1); color: #16a34a; border-color: rgba(22,163,74,.2); }
 .live-pill { display: inline-block; background: #c0392b; color: #fff; font-size: .58rem; font-weight: 700; padding: 1px 5px; border-radius: 3px; letter-spacing: .5px; margin-left: 4px; animation: blink 1s infinite; vertical-align: middle; }
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.4} }
 
@@ -327,7 +344,6 @@ body[data-theme="light"] .stats-label { background: #e9ecf4; }
 .flag-img.flag-inline { height: 1.1em; width: auto; display: inline-block; vertical-align: middle; margin-right: 3px; border-radius: 2px; }
 .flag-img.flag-row    { height: 7rem; width: auto; }
 .flag-img.flag-modal  { height: 5.5rem; width: auto; }
-.flag-img.flag-card   { height: 100%; width: 110px; object-fit: cover; }
 
 /* ── TEAM ROW ── */
 .team-row { display: grid; grid-template-columns: 36px 1fr auto 18px; gap: 10px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--border-soft); cursor: pointer; transition: background .15s; position: relative; overflow: hidden; }
@@ -397,15 +413,20 @@ body[data-theme="light"] .team-row-flag-bg { opacity: .24; }
 .lc-flag-home, .lc-flag-away {
   position: absolute; top: 0; bottom: 0;
   opacity: .22; pointer-events: none; z-index: 0;
-  display: flex; align-items: center;
+  width: 120px; overflow: hidden;
+}
+.lc-flag-home { left: 0; }
+.lc-flag-away { right: 0; }
+.lc-flag-home img.flag-img,
+.lc-flag-away img.flag-img {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%; object-fit: cover;
 }
 .lc-flag-home {
-  left: 4px;
   -webkit-mask-image: linear-gradient(to right, black 0%, black 35%, transparent 85%);
   mask-image: linear-gradient(to right, black 0%, black 35%, transparent 85%);
 }
 .lc-flag-away {
-  right: 4px;
   -webkit-mask-image: linear-gradient(to left, black 0%, black 35%, transparent 85%);
   mask-image: linear-gradient(to left, black 0%, black 35%, transparent 85%);
 }
@@ -897,6 +918,7 @@ body[data-theme="light"] .modal-team-name { color:#111827; }
     </div>
     <div id="live-label"></div>
     <div id="last-updated">Loading…</div>
+    <button id="about-btn" onclick="switchTab('about')" title="About">ℹ️</button>
   </div>
   <div id="final-pulltab" onclick="toggleFinalChrome()"><span id="final-pulltab-chevron">▲</span></div>
 </header>
@@ -1391,7 +1413,7 @@ function toggleFilter(f) {
 }
 
 // ── TABS ──────────────────────────────────────────────────────────────────────
-const ALL_TABS = ['teamstats','fixtures','results','boot','groups'];
+const ALL_TABS = ['teamstats','fixtures','results','boot','groups','about'];
 
 function switchTab(tab) {
   activeTab = tab;
@@ -1422,6 +1444,7 @@ function renderCurrentTab() {
   else if (activeTab==='results')      renderResults(lastState);
   else if (activeTab==='boot')         renderGoldenBoot(lastState);
   else if (activeTab==='allteams')     renderAllTeams(lastState);
+  else if (activeTab==='about')        renderAbout();
   else if (activeTab==='final')        renderFinalPage(lastState);
 }
 
@@ -2878,9 +2901,76 @@ setInterval(checkPageVersion, 3 * 60 * 1000); // then every 3 minutes
 })();
 
 // ── HIDDEN FINAL PAGE ACCESS (#final hash — no UI link anywhere) ──────────────
+// ── ABOUT PAGE ────────────────────────────────────────────────────────────────
+function renderAbout() {
+  const lastUpdate = document.getElementById('last-updated')?.textContent || '';
+  document.getElementById('content').innerHTML = `
+  <div class="about-page">
+    <img src="logos/wc2026-logo.png" class="about-logo" alt="World Cup 2026">
+    <div class="about-title">World Cup 2026 Tracker</div>
+    <div class="about-sub">Live scores, fixtures, results &amp; stats for all 104 matches</div>
+
+    <div class="about-section">
+      <div class="about-section-title">Data Sources</div>
+      <div class="about-card">
+        <div class="about-card-title">⚽ ESPN Scoreboard API</div>
+        <div class="about-card-body">Live scores, match events, lineups, and stats are fetched directly from ESPN's public scoreboard API in real time — refreshed every 30 seconds during live matches, every 5 minutes otherwise.</div>
+        <span class="about-tag">Live</span><span class="about-tag">No key required</span>
+      </div>
+      <div class="about-card">
+        <div class="about-card-title">📋 football-data.org</div>
+        <div class="about-card-body">Full fixture list, group standings, and knockout bracket data via <a href="https://www.football-data.org" target="_blank">football-data.org</a>. Updated every 15 minutes by an automated GitHub Action and stored as <code>data.json</code> in the repo.</div>
+        <span class="about-tag">15 min refresh</span><span class="about-tag">Free tier</span>
+      </div>
+      <div class="about-card">
+        <div class="about-card-title">🏴󠁧󠁢󠁥󠁮󠁧󠁿 Flag images</div>
+        <div class="about-card-body">Country flag SVGs served by <a href="https://flagcdn.com" target="_blank">flagcdn.com</a> — flat, crisp, and free.</div>
+        <span class="about-tag">flagcdn.com</span>
+      </div>
+    </div>
+
+    <div class="about-section">
+      <div class="about-section-title">Built With</div>
+      <div class="about-card">
+        <div class="about-card-title">🤖 Created with Claude</div>
+        <div class="about-card-body">This entire app — every line of HTML, CSS, and JavaScript — was built through conversation with <a href="https://claude.ai" target="_blank">Claude</a> by Anthropic. No manual coding.</div>
+        <span class="about-tag">Claude Sonnet</span><span class="about-tag">Anthropic</span>
+      </div>
+      <div class="about-card">
+        <div class="about-card-title">📄 Single-file web app</div>
+        <div class="about-card-body">Zero dependencies, no build system, no framework. One <code>index.html</code> file served via GitHub Pages. A service worker keeps it fast and makes it installable as a PWA.</div>
+        <span class="about-tag">GitHub Pages</span><span class="about-tag">PWA</span><span class="about-tag">No framework</span>
+      </div>
+      <div class="about-card">
+        <div class="about-card-title">📦 Source code</div>
+        <div class="about-card-body">Open source and available on GitHub: <a href="https://github.com/DARKFiB3R/2026-world-cup-tracker" target="_blank">DARKFiB3R/2026-world-cup-tracker</a></div>
+      </div>
+    </div>
+
+    <div class="about-section">
+      <div class="about-section-title">App Info</div>
+      <div class="about-card">
+        <div class="about-card-body" style="display:flex;flex-direction:column;gap:6px">
+          <div><strong>Tournament:</strong> FIFA World Cup 2026 — USA, Canada &amp; Mexico</div>
+          <div><strong>Matches:</strong> 104 across 48 teams</div>
+          <div><strong>Dates:</strong> 11 June – 19 July 2026</div>
+          ${lastUpdate ? `<div><strong>Data:</strong> ${lastUpdate}</div>` : ''}
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align:center;font-size:.65rem;color:var(--text-dimmer);margin-top:24px;padding-bottom:10px">
+      Made with ☕ and Claude · Not affiliated with FIFA or ESPN
+    </div>
+  </div>`;
+}
+
 function checkFinalHash() {
   if ((window.location.hash === '#final' || window.location.hash === '#final-test') && lastState) {
     switchTab('final');
+  }
+  if (window.location.hash === '#about') {
+    switchTab('about');
   }
 }
 window.addEventListener('hashchange', checkFinalHash);
