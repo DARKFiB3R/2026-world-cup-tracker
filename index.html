@@ -535,14 +535,15 @@ body[data-theme="light"] .lc-headline { color: #6b7280; }
 .ld-ev-player { font-size: .74rem; font-weight: 600; }
 .ld-ev-sub { font-size: .6rem; color: var(--text-dim); margin-top: 1px; }
 .ld-ev-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
-.ld-disc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.ld-disc-cell { background: rgba(255,255,255,.07); border-radius: 8px; padding: 8px 10px; text-align: center; }
-body[data-theme="light"] .ld-disc-cell { background: rgba(0,0,0,.12); }
+.ld-disc-grid { display: flex; flex-direction: column; gap: 5px; }
+.ld-disc-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; background: rgba(255,255,255,.07); border-radius: 8px; padding: 6px 10px; }
+.ld-disc-num { font-size: 1.1rem; font-weight: 900; line-height: 1; }
+.ld-disc-num.home { text-align: left; }
+.ld-disc-num.away { text-align: right; }
+.ld-disc-label { font-size: .6rem; color: var(--text-dim); text-align: center; white-space: nowrap; }
+body[data-theme="light"] .ld-disc-row { background: rgba(0,0,0,.08); }
 body[data-theme="light"] .ld-hero::after { background: linear-gradient(to bottom, rgba(10,20,50,.45) 0%, rgba(10,20,50,.72) 100%); }
 body[data-theme="light"] .ld-body { background: rgba(240,245,255,.88); }
-.ld-disc-num { font-size: 1.3rem; font-weight: 900; line-height: 1; }
-.ld-disc-label { font-size: .58rem; color: var(--text-dim); margin-top: 2px; }
-.ld-disc-bar { height: 3px; border-radius: 2px; margin: 4px auto 0; width: 40%; }
 .ld-venue-row { font-size: .65rem; color: var(--text-dim); text-align: center; margin-top: 12px; display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
 .lz-live-header { display: flex; align-items: center; gap: 6px; padding: 9px 16px 0; }
 .lz-dot { width: 7px; height: 7px; border-radius: 50%; background: #e74c3c; animation: blink 1s infinite; flex-shrink: 0; }
@@ -2473,6 +2474,7 @@ function showLiveDetail(home, away, refresh=false) {
   }
   _liveDetailMatch = {home, away};
 
+  const IS_KO = s => ['LAST_32','LAST_16','QUARTER_FINALS','SEMI_FINALS','THIRD_PLACE','FINAL'].includes(s);
   const h = norm(m.home), a = norm(m.away);
   const hC = lastTeams[h]?.color||'#2ecc71', aC = lastTeams[a]?.color||'#3498db';
   const isLive = m.status==='IN_PLAY'||m.status==='PAUSED';
@@ -2558,12 +2560,12 @@ function showLiveDetail(home, away, refresh=false) {
           ${m.attendance?`<span>👥 ${m.attendance.toLocaleString()}</span>`:''}
         </div>
         <div class="ld-teams">
-          <div class="ld-team">${teamCrest(h,'crest')}<div class="ld-team-name">${h}</div></div>
+          <div class="ld-team">${teamCrest(h,'crest')}<div class="ld-team-name">${h}</div>${isDone&&IS_KO?`<div style="font-size:.65rem;margin-top:3px;font-weight:700;color:${m.winner==='HOME_TEAM'?'#2ecc71':'#e74c3c'}">${m.winner==='HOME_TEAM'?'✓ Through':'✕ Out'}</div>`:''}</div>
           <div class="ld-score-block">
             <div class="ld-score">${m.homeScore??0} – ${m.awayScore??0}</div>
             ${isLive?`<div class="ld-clock"><div class="ld-dot"></div>${m.clock||'LIVE'}</div>`:isDone?'<div class="ld-ft">Full Time</div>':''}
           </div>
-          <div class="ld-team">${teamCrest(a,'crest')}<div class="ld-team-name">${a}</div></div>
+          <div class="ld-team">${teamCrest(a,'crest')}<div class="ld-team-name">${a}</div>${isDone&&IS_KO?`<div style="font-size:.65rem;margin-top:3px;font-weight:700;color:${m.winner==='AWAY_TEAM'?'#2ecc71':'#e74c3c'}">${m.winner==='AWAY_TEAM'?'✓ Through':'✕ Out'}</div>`:''}</div>
         </div>
       </div>
     </div>
@@ -2579,10 +2581,16 @@ function showLiveDetail(home, away, refresh=false) {
           <div style="margin-top:12px">
             <div class="ld-section-title">🟨 Discipline</div>
             <div class="ld-disc-grid">
-              <div class="ld-disc-cell"><div class="ld-disc-num" style="color:#f1c40f">${hYellows}</div><div class="ld-disc-label">${h} Yellows</div></div>
-              <div class="ld-disc-cell"><div class="ld-disc-num" style="color:#e74c3c">${hReds}</div><div class="ld-disc-label">${h} Reds</div></div>
-              <div class="ld-disc-cell"><div class="ld-disc-num" style="color:#f1c40f">${aYellows}</div><div class="ld-disc-label">${a} Yellows</div></div>
-              <div class="ld-disc-cell"><div class="ld-disc-num" style="color:#e74c3c">${aReds}</div><div class="ld-disc-label">${a} Reds</div></div>
+              <div class="ld-disc-row">
+                <div class="ld-disc-num home" style="color:#f1c40f">${hYellows}</div>
+                <div class="ld-disc-label">🟨 Yellows</div>
+                <div class="ld-disc-num away" style="color:#f1c40f">${aYellows}</div>
+              </div>
+              <div class="ld-disc-row">
+                <div class="ld-disc-num home" style="color:#e74c3c">${hReds}</div>
+                <div class="ld-disc-label">🟥 Reds</div>
+                <div class="ld-disc-num away" style="color:#e74c3c">${aReds}</div>
+              </div>
             </div>
           </div>
         </div>
