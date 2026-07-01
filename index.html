@@ -2467,8 +2467,8 @@ function showLiveDetail(home, away, refresh=false) {
 
   const b = document.getElementById('live-zone');
 
-  // Toggle OFF only on explicit user click (not a refresh)
-  if (!refresh && _liveDetailMatch?.home===home && _liveDetailMatch?.away===away) {
+  // Toggle OFF only on explicit user click when panel is already expanded
+  if (!refresh && _liveDetailMatch?.home===home && _liveDetailMatch?.away===away && b.classList.contains('lz-expanded')) {
     closeLiveDetail(); return;
   }
   _liveDetailMatch = {home, away};
@@ -2598,12 +2598,14 @@ function showLiveDetail(home, away, refresh=false) {
 
 function closeLiveDetail() {
   const b = document.getElementById('live-zone');
-  b.classList.remove('lz-expanded');
-  b.style.backgroundImage = '';
-  b.querySelectorAll('.lz-expanded-panel').forEach(el=>el.remove());
   if (_liveDetailMatch) b.dataset.userClosedFor = norm(_liveDetailMatch.home)+'+'+norm(_liveDetailMatch.away);
   b.dataset.userClosed = '1';
   _liveDetailMatch = null;
+  b.classList.remove('lz-expanded');
+  b.style.backgroundImage = '';
+  b.querySelectorAll('.lz-expanded-panel').forEach(el=>el.remove());
+  // Immediately restore the strip so the right card is shown
+  if (lastState) renderBanner(lastState);
 }
 
 // ── BANNER & STATS ────────────────────────────────────────────────────────────
@@ -2908,19 +2910,25 @@ async function update() {
 
     lastState=processMatches(matches);
     renderStats(lastState);
-    renderBanner(lastState);
-    // Auto-expand first live match when a game kicks off; respect user closing it
-    const liveNow = lastState.allMatches.filter(m=>m.status==='IN_PLAY'||m.status==='PAUSED');
     const lzEl = document.getElementById('live-zone');
-    if (liveNow.length && lzEl?.dataset.userClosed) {
-      const firstLive = norm(liveNow[0].home)+'+'+norm(liveNow[0].away);
-      if (lzEl.dataset.userClosedFor !== firstLive) delete lzEl.dataset.userClosed;
-    }
-    if (!liveNow.length && lzEl) { delete lzEl.dataset.userClosed; delete lzEl.dataset.userClosedFor; }
-    if (liveNow.length && !lzEl?.classList.contains('lz-expanded') && !lzEl?.dataset.userClosed) {
-      showLiveDetail(liveNow[0].home, liveNow[0].away);
-    } else if (_liveDetailMatch && lzEl?.classList.contains('lz-expanded')) {
-      showLiveDetail(_liveDetailMatch.home, _liveDetailMatch.away, true); // refresh
+    const liveNow = lastState.allMatches.filter(m=>m.status==='IN_PLAY'||m.status==='PAUSED');
+
+    if (lzEl?.classList.contains('lz-expanded') && _liveDetailMatch) {
+      // Panel is open — just refresh the expanded content, don't touch the strip
+      showLiveDetail(_liveDetailMatch.home, _liveDetailMatch.away, true);
+    } else {
+      // Panel is closed — render the strip normally
+      renderBanner(lastState);
+      // Clear userClosed when a different game goes live
+      if (liveNow.length && lzEl?.dataset.userClosed) {
+        const firstLive = norm(liveNow[0].home)+'+'+norm(liveNow[0].away);
+        if (lzEl.dataset.userClosedFor !== firstLive) { delete lzEl.dataset.userClosed; delete lzEl.dataset.userClosedFor; }
+      }
+      if (!liveNow.length && lzEl) { delete lzEl.dataset.userClosed; delete lzEl.dataset.userClosedFor; }
+      // Auto-expand when a game kicks off
+      if (liveNow.length && !lzEl?.dataset.userClosed) {
+        showLiveDetail(liveNow[0].home, liveNow[0].away);
+      }
     }
     renderCurrentTab();
 
