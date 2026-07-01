@@ -896,8 +896,7 @@ body[data-theme="light"] .modal-team-name { color:#111827; }
 <div class="tab-bar-wrap">
 <nav class="tab-bar">
   <button class="tab-btn active" onclick="switchTab('teamstats')">📊 Teams</button>
-  <button class="tab-btn"        onclick="switchTab('matchcentre')">⚽ Matches</button>
-  <button class="tab-btn"        onclick="switchTab('bracket')">🥊 Knockouts</button>
+  <button class="tab-btn"        onclick="switchTab('fixtures')">⚽ Fixtures</button>
   <button class="tab-btn"        onclick="switchTab('boot')">👟 Golden Boot</button>
   <button class="tab-btn"        onclick="switchTab('results')">✅ Results</button>
   <button class="tab-btn"        onclick="switchTab('groups')">📋 Group Stages</button>
@@ -1346,7 +1345,7 @@ function toggleFilter(f) {
 }
 
 // ── TABS ──────────────────────────────────────────────────────────────────────
-const ALL_TABS = ['teamstats','matchcentre','bracket','boot','results','groups'];
+const ALL_TABS = ['teamstats','fixtures','boot','results','groups'];
 
 function switchTab(tab) {
   activeTab = tab;
@@ -1373,11 +1372,10 @@ function switchTab(tab) {
 function renderCurrentTab() {
   if      (activeTab==='teamstats')    renderTeamStats(lastState);
   else if (activeTab==='groups')       renderGroups(lastState);
-  else if (activeTab==='bracket')      renderBracket(lastState);
+  else if (activeTab==='fixtures')     renderFixtures(lastState);
   else if (activeTab==='boot')         renderGoldenBoot(lastState);
   else if (activeTab==='results')      renderResults(lastState);
   else if (activeTab==='allteams')     renderAllTeams(lastState);
-  else if (activeTab==='matchcentre')  renderMatchCentre(lastState);
   else if (activeTab==='final')        renderFinalPage(lastState);
 }
 
@@ -1509,57 +1507,105 @@ function renderGroups(st) {
 }
 
 // ── RENDER: BRACKET ───────────────────────────────────────────────────────────
-function renderBracket(st) {
-  const stages = ['LAST_32','LAST_16','QUARTER_FINALS','SEMI_FINALS','THIRD_PLACE','FINAL'];
-  const stageMatches = {};
-  for (const m of st.allMatches) {
-    if (m.stage === 'GROUP_STAGE') continue;
-    if (!stageMatches[m.stage]) stageMatches[m.stage] = [];
-    stageMatches[m.stage].push({...m, _h:norm(m.home), _a:norm(m.away)});
-  }
+function renderFixtures(st) {
+  const KO_STAGES = ['LAST_32','LAST_16','QUARTER_FINALS','SEMI_FINALS','THIRD_PLACE','FINAL'];
 
-  if (!Object.keys(stageMatches).length) {
-    document.getElementById('content').innerHTML=`<div class="empty-state"><div class="empty-icon">🥊</div><div class="empty-title">Bracket not yet set</div><div class="empty-sub">Knockout fixtures will appear here once the group stage is complete.</div></div>`;
-    return;
-  }
+  const makeCard = m => {
+    const h = norm(m.home), a = norm(m.away);
+    const hC = lastTeams[h]?.color||'#2ecc71', aC = lastTeams[a]?.color||'#3b8fd4';
+    const isLive = m.status==='IN_PLAY'||m.status==='PAUSED';
+    const isDone = m.status==='FINISHED';
+    const isKO   = KO_STAGES.includes(m.stage);
 
-  const makeMatchCard = m => {
-    const hS=TEAM_MAP[m._h], aS=TEAM_MAP[m._a];
-    const done=m.status==='FINISHED', live=m.status==='IN_PLAY'||m.status==='PAUSED';
-    const hSynd=!!hS, aSynd=!!aS;
-    const scoreOrVs = done||live
-      ? `<div class="bracket-mid-score">${m.homeScore}–${m.awayScore}</div>`
-      : `<div class="bracket-mid-date">${fmtDate(m.utcDate)}<br>${fmtTime(m.utcDate)}</div>`;
-    const statusBadge = live ? `<span class="live-badge-big">🔴 LIVE</span>` : done ? `<span class="finished-badge">FT</span>` : '';
+    const badge = isLive ? `<span class="live-badge-big">\ud83d\udd34 LIVE</span>`
+                : isDone ? `<span class="finished-badge">FT</span>`
+                :          `<span class="upcoming-badge">${fmtTime(m.utcDate)}</span>`;
+
+    const scoreHtml = !isDone && !isLive
+      ? `<div style="font-size:.9rem;color:rgba(255,255,255,0.50);font-weight:600">vs</div>`
+      : `<div class="live-score${isLive?' is-live':''}">${m.homeScore}<span class="live-score-sep"> \u2013 </span>${m.awayScore}</div>`;
 
     let hFate = '', aFate = '';
-    if (done) {
+    if (isDone && isKO) {
       const hWon = m.winner==='HOME_TEAM', aWon = m.winner==='AWAY_TEAM';
-      if (hWon)      { hFate = `<div class="bracket-fate bracket-fate-thru">✓ Through</div>`; aFate = `<div class="bracket-fate bracket-fate-out">✕ Out</div>`; }
-      else if (aWon) { aFate = `<div class="bracket-fate bracket-fate-thru">✓ Through</div>`; hFate = `<div class="bracket-fate bracket-fate-out">✕ Out</div>`; }
+      if (hWon)      { hFate = `<div class="bracket-fate bracket-fate-thru">\u2713 Through</div>`; aFate = `<div class="bracket-fate bracket-fate-out">\u2715 Out</div>`; }
+      else if (aWon) { aFate = `<div class="bracket-fate bracket-fate-thru">\u2713 Through</div>`; hFate = `<div class="bracket-fate bracket-fate-out">\u2715 Out</div>`; }
     }
 
-    return `<div class="bracket-row">
-      <div class="bracket-home" onclick="showModal('${escQ(m._h)}')">
-        <div class="bracket-team">${teamCrest(m._h,'crest-sm')}<span class="bracket-nm ${hSynd?'synd':'non-synd'}">${starTeam(m._h)}${m._h}</span></div>
-        ${hFate}
+    const goals = (m.events||[]).filter(e=>e.type==='goal');
+    const reds  = (m.events||[]).filter(e=>e.type==='redcard');
+    const evs   = [...goals,...reds].sort((a,b)=>(parseInt(a.minute)||0)-(parseInt(b.minute)||0));
+    const evHtml = evs.length ? `<div class="live-events">${evs.map(e=>{
+      const isH = norm(e.team)===h;
+      return `<div class="live-ev"><span class="live-ev-min">${e.minute}'</span><span class="live-ev-icon">${e.type==='redcard'?'\ud83d\udfe5':'\u26bd'}</span><span class="live-ev-player">${e.player}${e.ownGoal?' (og)':e.penalty?' (pen)':''}</span><span class="live-ev-dot" style="background:${isH?hC:aC}"></span></div>`;
+    }).join('')}</div>` : '';
+
+    const mst = m.stats||{}, hst = mst[h], ast = mst[a];
+    const statsHtml = (isDone||isLive) && hst ? `<div class="live-stats">
+      <div class="live-poss-lbl"><span style="color:rgba(255,255,255,.85)">${hst.possession}%</span><span>Possession</span><span style="color:rgba(255,255,255,.85)">${ast?.possession||0}%</span></div>
+      <div class="live-poss-bar"><div class="live-poss-fill" style="width:${hst.possession}%;background:${hC}"></div></div>
+      <div class="live-stat-r"><span class="lsv">${hst.shots}</span><span class="lsl">Shots</span><span class="lsv r">${ast?.shots||0}</span></div>
+      <div class="live-stat-r"><span class="lsv">${hst.shotsOnTarget}</span><span class="lsl">On Target</span><span class="lsv r">${ast?.shotsOnTarget||0}</span></div>
+      ${m.attendance?`<div class="live-stat-r" style="margin-top:2px"><span class="lsl" style="text-align:left;color:rgba(255,255,255,0.56)">\ud83d\udc65 ${m.attendance.toLocaleString()}</span></div>`:''}
+    </div>` : m.attendance&&isDone ? `<div class="live-stats"><div class="live-stat-r"><span class="lsl" style="text-align:left;color:rgba(255,255,255,0.56)">\ud83d\udc65 ${m.attendance.toLocaleString()}</span></div></div>` : '';
+
+    const dateLine = !isLive ? `<div style="font-size:.62rem;color:rgba(255,255,255,.45);margin-bottom:3px">${fmtDate(m.utcDate)}</div>` : '';
+
+    return `<div class="live-card${isLive?' is-live':''}">
+      <div class="live-card-hdr"><span>${m.venue||''}</span>${badge}</div>
+      <div class="live-score-row">
+        <div class="live-team" onclick="showModal('${escQ(h)}')">
+          ${teamCrest(h,'crest')}<div class="live-team-name">${starTeam(h)}${h}</div>
+          ${hFate}
+        </div>
+        <div class="live-score-box">
+          ${dateLine}${scoreHtml}
+          ${isDone&&m.headline?`<div style="font-size:.58rem;color:rgba(255,255,255,0.53);margin-top:6px;text-align:center;max-width:110px;line-height:1.3">${m.headline}</div>`:''}
+        </div>
+        <div class="live-team" onclick="showModal('${escQ(a)}')">
+          ${teamCrest(a,'crest')}<div class="live-team-name">${starTeam(a)}${a}</div>
+          ${aFate}
+        </div>
       </div>
-      <div class="bracket-mid">${scoreOrVs}${statusBadge?`<div style="margin-top:3px">${statusBadge}</div>`:''}</div>
-      <div class="bracket-away" onclick="showModal('${escQ(m._a)}')">
-        <div class="bracket-team"><span class="bracket-nm ${aSynd?'synd':'non-synd'}">${starTeam(m._a)}${m._a}</span>${teamCrest(m._a,'crest-sm')}</div>
-        ${aFate}
-      </div>
+      ${evHtml}${statsHtml}
     </div>`;
   };
 
-  let html='';
-  for (const stage of stages) {
-    const matches = stageMatches[stage];
-    if (!matches) continue;
-    matches.sort((a,b)=>new Date(a.utcDate)-new Date(b.utcDate));
-    html += `<div class="sec-hdr">${KO_LONG[stage]||stage} — ${matches.length} match${matches.length!==1?'es':''}</div>`;
-    html += `<div class="bracket-section">` + matches.map(makeMatchCard).join('') + `</div>`;
+  const liveMatches = st.allMatches.filter(m=>m.status==='IN_PLAY'||m.status==='PAUSED');
+  const liveIds     = new Set(liveMatches.map(m=>m.espnId||m.utcDate+m.home+m.away));
+
+  let html = '';
+
+  if (liveMatches.length) {
+    html += `<div class="sec-hdr">\ud83d\udd34 Live Now \u2014 ${liveMatches.length} match${liveMatches.length!==1?'es':''}</div>`;
+    html += liveMatches.map(makeCard).join('');
   }
+
+  const groups = {};
+  for (const m of st.allMatches) {
+    if (m.stage !== 'GROUP_STAGE') continue;
+    if (liveIds.has(m.espnId||m.utcDate+m.home+m.away)) continue;
+    const g = m.group||'GROUP_?';
+    if (!groups[g]) groups[g] = [];
+    groups[g].push(m);
+  }
+  for (const g of Object.keys(groups).sort()) {
+    const label = 'Group ' + g.replace('GROUP_','');
+    const matches = groups[g].sort((a,b)=>new Date(a.utcDate)-new Date(b.utcDate));
+    html += `<div class="sec-hdr">${label}</div>`;
+    html += matches.map(makeCard).join('');
+  }
+
+  for (const stage of KO_STAGES) {
+    const matches = st.allMatches
+      .filter(m => m.stage===stage && !liveIds.has(m.espnId||m.utcDate+m.home+m.away))
+      .sort((a,b)=>new Date(a.utcDate)-new Date(b.utcDate));
+    if (!matches.length) continue;
+    html += `<div class="sec-hdr">${KO_LONG[stage]||stage} \u2014 ${matches.length} match${matches.length!==1?'es':''}</div>`;
+    html += matches.map(makeCard).join('');
+  }
+
+  if (!html) html = `<div class="empty-state"><div class="empty-icon">\u26bd</div><div class="empty-title">No fixtures yet</div><div class="empty-sub">Check back soon.</div></div>`;
   document.getElementById('content').innerHTML = html;
 }
 
@@ -2124,69 +2170,12 @@ function showModal(team) {
 function closeModal(e) { if(e.target===document.getElementById('overlay')) closeModalForce(); }
 function closeModalForce() { document.getElementById('overlay').classList.remove('open'); }
 
-// ── MATCH CENTRE ─────────────────────────────────────────────────────────────
+// ── FIXTURES TAB ──────────────────────────────────────────────────────────────
 function showMatchCentre() {
   if (!lastState) return;
-  switchTab('matchcentre');
+  switchTab('fixtures');
 }
 
-function renderMatchCentre(st) {
-  const now=Date.now();
-  const live    =st.allMatches.filter(m=>m.status==='IN_PLAY'||m.status==='PAUSED');
-  const recent  =st.allMatches.filter(m=>m.status==='FINISHED'&&now-new Date(m.utcDate).getTime()<3*60*60*1000);
-  const upcoming=st.allMatches.filter(m=>{
-    const t=new Date(m.utcDate).getTime();
-    return (m.status==='SCHEDULED'||m.status==='TIMED')&&t>now;
-  }).sort((a,b)=>new Date(a.utcDate)-new Date(b.utcDate));
-
-  const makeCard=m=>{
-    const h=norm(m.home),a=norm(m.away);
-    const hE=TEAM_MAP[h],aE=TEAM_MAP[a];
-    const hC=lastTeams[h]?.color||'#2ecc71', aC=lastTeams[a]?.color||'#3b8fd4';
-    const isLive=m.status==='IN_PLAY'||m.status==='PAUSED';
-    const isDone=m.status==='FINISHED';
-    const stageLbl=m.stage==='GROUP_STAGE'?`Group ${(m.group||'').replace('GROUP_','')}`:(KO_SHORT[m.stage]||m.stage);
-    const badge=isLive?`<span class="live-badge-big">🔴 LIVE</span>`:isDone?`<span class="finished-badge">FT</span>`:`<span class="upcoming-badge">${fmtTime(m.utcDate)}</span>`;
-    const scoreHtml=!isDone&&!isLive
-      ?`<div style="font-size:.9rem;color:rgba(255,255,255,0.50);font-weight:600">vs</div>`
-      :`<div class="live-score${isLive?' is-live':''}">${m.homeScore}<span class="live-score-sep"> – </span>${m.awayScore}</div>`;
-    const goals=(m.events||[]).filter(e=>e.type==='goal');
-    const reds=(m.events||[]).filter(e=>e.type==='redcard');
-    const evs=[...goals,...reds].sort((a,b)=>(parseInt(a.minute)||0)-(parseInt(b.minute)||0));
-    const evHtml=evs.length?`<div class="live-events">${evs.map(e=>{
-      const isH=norm(e.team)===h;
-      return `<div class="live-ev"><span class="live-ev-min">${e.minute}</span><span class="live-ev-icon">${e.type==='redcard'?'🟥':e.ownGoal?'⚽':e.penalty?'⚽':'⚽'}</span><span class="live-ev-player">${e.player}${e.ownGoal?' (og)':e.penalty?' (pen)':''}</span><span class="live-ev-dot" style="background:${isH?hC:aC}"></span></div>`;
-    }).join('')}</div>`:'';
-    const mst=m.stats||{},hst=mst[h],ast=mst[a];
-    const statsHtml=(isDone||isLive)&&hst?`<div class="live-stats">
-      <div class="live-poss-lbl"><span style="color:rgba(255,255,255,.85)">${hst.possession}%</span><span>Possession</span><span style="color:rgba(255,255,255,.85)">${ast?.possession||0}%</span></div>
-      <div class="live-poss-bar"><div class="live-poss-fill" style="width:${hst.possession}%;background:${hC}"></div></div>
-      <div class="live-stat-r"><span class="lsv">${hst.shots}</span><span class="lsl">Shots</span><span class="lsv r">${ast?.shots||0}</span></div>
-      <div class="live-stat-r"><span class="lsv">${hst.shotsOnTarget}</span><span class="lsl">On Target</span><span class="lsv r">${ast?.shotsOnTarget||0}</span></div>
-      ${m.attendance?`<div class="live-stat-r" style="margin-top:2px"><span class="lsl" style="text-align:left;color:rgba(255,255,255,0.56)">👥 ${m.attendance.toLocaleString()}</span></div>`:''}
-    </div>`:m.attendance&&isDone?`<div class="live-stats"><div class="live-stat-r"><span class="lsl" style="text-align:left;color:rgba(255,255,255,0.56)">👥 ${m.attendance.toLocaleString()}</span></div></div>`:'';
-    return `<div class="live-card${isLive?' is-live':''}">
-      <div class="live-card-hdr"><span>${stageLbl}${m.venue?' · '+m.venue:''}</span>${badge}</div>
-      <div class="live-score-row">
-        <div class="live-team" onclick="showModal('${escQ(h)}')">
-          ${teamCrest(h,'crest')}<div class="live-team-name">${starTeam(h)}${h}</div>
-        </div>
-        <div class="live-score-box">${scoreHtml}${isDone&&m.headline?`<div style="font-size:.58rem;color:rgba(255,255,255,0.53);margin-top:6px;text-align:center;max-width:110px;line-height:1.3">${m.headline}</div>`:''}</div>
-        <div class="live-team" onclick="showModal('${escQ(a)}')">
-          ${teamCrest(a,'crest')}<div class="live-team-name">${starTeam(a)}${a}</div>
-        </div>
-      </div>
-      ${evHtml}${statsHtml}
-    </div>`;
-  };
-
-  let html='';
-  if(live.length)    { html+=`<div class="sec-hdr">🔴 Live Now — ${live.length} match${live.length!==1?'es':''}</div>`+live.map(makeCard).join(''); }
-  if(upcoming.length){ html+=`<div class="sec-hdr">📅 Coming Up</div>`+upcoming.map(makeCard).join(''); }
-  if(recent.length)  { html+=`<div class="sec-hdr">✅ Recent Results</div>`+recent.slice(0,8).map(makeCard).join(''); }
-  if(!html) html=`<div class="empty-state"><div class="empty-icon">⚽</div><div class="empty-title">No matches right now</div><div class="empty-sub">Check back when games are scheduled.</div></div>`;
-  document.getElementById('content').innerHTML=html;
-}
 
 // ── BANNER & STATS ────────────────────────────────────────────────────────────
 function renderBanner(st) {
