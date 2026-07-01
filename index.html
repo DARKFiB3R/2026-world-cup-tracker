@@ -1087,8 +1087,8 @@ const POINTS = {
   OUT_QUARTER:3,IN_R16:3,OUT_R16:2,IN_R32:2,OUT_R32:1,QUALIFIED:1,
   TBD:0,GROUP:0,OUT_GROUP:0,UNKNOWN:0,
 };
-const KO_LONG  = {LAST_32:"R1",LAST_16:"R2",QUARTER_FINALS:"Quarter",SEMI_FINALS:"Semi",THIRD_PLACE:"3rd Place",FINAL:"🏆 Final"};
-const KO_SHORT = {LAST_32:"R1",LAST_16:"R2",QUARTER_FINALS:"Quarter",SEMI_FINALS:"Semi",FINAL:"Final"};
+const KO_LONG  = {LAST_32:"Round 1",LAST_16:"Round 2",QUARTER_FINALS:"Quarter Finals",SEMI_FINALS:"Semi Finals",THIRD_PLACE:"Third Place Playoff",FINAL:"🏆 Final"};
+const KO_SHORT = {LAST_32:"R1",LAST_16:"R2",QUARTER_FINALS:"QF",SEMI_FINALS:"SF",THIRD_PLACE:"3rd",FINAL:"Final"};
 const STAGE_LIST = [{label:'Group'},{label:'R1'},{label:'R2'},{label:'Quarter'},{label:'Semi'},{label:'🏆'}];
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
@@ -1529,6 +1529,7 @@ function renderGroups(st) {
 
 // ── RENDER: BRACKET ───────────────────────────────────────────────────────────
 function renderFixtures(st) {
+  const KO_STAGES = ['LAST_32','LAST_16','QUARTER_FINALS','SEMI_FINALS','THIRD_PLACE','FINAL'];
   const flag = team => SYNDICATE.find(x=>x.team===team)?.flag||'';
 
   const makeCard = m => {
@@ -1560,7 +1561,7 @@ function renderFixtures(st) {
     }).join('')}</div>${legendHtml}` : '';
 
     return `<div class="live-card${isLive?' is-live':' is-upcoming'}">
-      <div class="live-card-hdr"><span>${m.venue||''}</span>${badge}</div>
+      <div class="live-card-hdr"><span>${fmtDate(m.utcDate)} &middot; ${m.venue||''}</span>${badge}</div>
       <div class="live-score-row">
         ${hF?`<div class="lc-flag-home">${hF}</div>`:''}
         ${aF?`<div class="lc-flag-away">${aF}</div>`:''}
@@ -1579,28 +1580,43 @@ function renderFixtures(st) {
     </div>`;
   };
 
-  const liveMatches = st.allMatches.filter(m=>m.status==='IN_PLAY'||m.status==='PAUSED');
-  const upcoming    = st.allMatches
-    .filter(m=>m.status==='SCHEDULED'||m.status==='TIMED')
-    .sort((a,b)=>new Date(a.utcDate)-new Date(b.utcDate));
+  const liveIds  = new Set();
+  const liveMatches = st.allMatches.filter(m=>{
+    const live = m.status==='IN_PLAY'||m.status==='PAUSED';
+    if (live) liveIds.add(m.espnId||m.utcDate+m.home+m.away);
+    return live;
+  });
+  const notLive  = m => !liveIds.has(m.espnId||m.utcDate+m.home+m.away);
+  const upcoming = st.allMatches.filter(m=>(m.status==='SCHEDULED'||m.status==='TIMED') && notLive(m))
+                     .sort((a,b)=>new Date(a.utcDate)-new Date(b.utcDate));
 
   let html = '';
 
-  // Live pinned at top
   if (liveMatches.length) {
     html += `<div class="sec-hdr">&#128308; Live Now &mdash; ${liveMatches.length} match${liveMatches.length!==1?'es':''}</div>`;
     html += liveMatches.map(makeCard).join('');
   }
 
-  // Upcoming grouped by date, soonest first
-  const byDate = {};
+  // Group stage — one section per group A→L, soonest first within
+  const groups = {};
   for (const m of upcoming) {
-    const d = fmtDate(m.utcDate);
-    if (!byDate[d]) byDate[d] = [];
-    byDate[d].push(m);
+    if (m.stage !== 'GROUP_STAGE') continue;
+    const g = m.group||'GROUP_?';
+    if (!groups[g]) groups[g] = [];
+    groups[g].push(m);
   }
-  for (const [date, matches] of Object.entries(byDate)) {
-    html += `<div class="sec-hdr">${date}</div>`;
+  for (const g of Object.keys(groups).sort()) {
+    const label = 'Group ' + g.replace('GROUP_','');
+    const matches = groups[g];
+    html += `<div class="sec-hdr">${label}</div>`;
+    html += matches.map(makeCard).join('');
+  }
+
+  // KO rounds in order
+  for (const stage of KO_STAGES) {
+    const matches = upcoming.filter(m=>m.stage===stage);
+    if (!matches.length) continue;
+    html += `<div class="sec-hdr">${KO_LONG[stage]||stage}</div>`;
     html += matches.map(makeCard).join('');
   }
 
@@ -1917,7 +1933,7 @@ function renderResults(st) {
     </div>` : m.attendance ? `<div class="live-stats"><div class="live-stat-r"><span class="lsl" style="text-align:left;color:rgba(255,255,255,0.56)">&#128101; ${m.attendance.toLocaleString()}</span></div></div>` : '';
 
     return `<div class="live-card">
-      <div class="live-card-hdr"><span>${m.venue||''}</span><span class="finished-badge">FT</span></div>
+      <div class="live-card-hdr"><span>${fmtDate(m.utcDate)} &middot; ${m.venue||''}</span><span class="finished-badge">FT</span></div>
       <div class="live-score-row">
         ${hF?`<div class="lc-flag-home">${hF}</div>`:''}
         ${aF?`<div class="lc-flag-away">${aF}</div>`:''}
@@ -1926,7 +1942,6 @@ function renderResults(st) {
           ${hFate}
         </div>
         <div class="live-score-box">
-          <div style="font-size:.62rem;color:rgba(255,255,255,.45);margin-bottom:3px">${fmtDate(m.utcDate)}</div>
           ${scoreHtml}
           ${m.headline?`<div style="font-size:.58rem;color:rgba(255,255,255,0.53);margin-top:6px;text-align:center;max-width:110px;line-height:1.3">${m.headline}</div>`:''}
         </div>
@@ -1939,18 +1954,29 @@ function renderResults(st) {
     </div>`;
   };
 
-  const byDate = {};
-  for (const m of finished) {
-    const d = fmtDate(m.utcDate);
-    if (!byDate[d]) byDate[d] = [];
-    byDate[d].push(m);
-  }
-
   let html = '';
-  for (const [date, matches] of Object.entries(byDate)) {
-    html += `<div class="sec-hdr">${date}</div>`;
+
+  // KO rounds most recent first (most dramatic first)
+  for (const stage of [...KO_STAGES].reverse()) {
+    const matches = finished.filter(m=>m.stage===stage);
+    if (!matches.length) continue;
+    html += `<div class="sec-hdr">${KO_LONG[stage]||stage}</div>`;
     html += matches.map(makeCard).join('');
   }
+
+  // Group stage — most recent group first, most recent match within each group first
+  const groups = {};
+  for (const m of finished.filter(m=>m.stage==='GROUP_STAGE')) {
+    const g = m.group||'GROUP_?';
+    if (!groups[g]) groups[g] = [];
+    groups[g].push(m);
+  }
+  for (const g of Object.keys(groups).sort().reverse()) {
+    const label = 'Group ' + g.replace('GROUP_','');
+    html += `<div class="sec-hdr">${label}</div>`;
+    html += groups[g].map(makeCard).join('');
+  }
+
   document.getElementById('content').innerHTML = html;
 }
 
