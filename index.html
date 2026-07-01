@@ -1292,7 +1292,7 @@ function onSearch(val) {
 function renderSearchResults(q) {
   if (!lastState) return;
   const ql = q.toLowerCase();
-  let html = 
+  let html = '';
   let total = 0;
 
   // ── Teams ────────────────────────────────────────────────────────────────────
@@ -1336,7 +1336,7 @@ function renderSearchResults(q) {
       const synd     = TEAM_MAP[s.team];
       const isF      = isFollowingPlayer(s.player);
       const clickable = SYND_TEAMS.has(s.team);
-      const onclick  = clickable ? `onclick="showModal('${escQ(s.team)}');setTimeout(()=>switchModalTab('squad'),80)"` : 
+      const onclick  = clickable ? `onclick="showModal('${escQ(s.team)}');setTimeout(()=>switchModalTab('squad'),80)"` : ''
       html += `<div class="boot-row${isF?' followed':''}" data-player="${escQ(s.player)}">
         <div class="boot-inner" ${onclick} style="${clickable?'cursor:pointer':''}">
           <span class="boot-rank" style="color:rgba(255,255,255,.35)">⚽</span>
@@ -1364,7 +1364,7 @@ function renderSearchResults(q) {
 }
 function clearSearch() {
   const inp = document.getElementById('search-input');
-  inp.value = 
+  inp.value =''
   document.getElementById('search-clear').style.display = 'none';
   onSearch('');
 }
@@ -1440,7 +1440,7 @@ function renderTeamStats(st) {
       </div>`).join('');
     // Group stage points from standings
     const gr = st.groupRanks[e.team];
-    const grPts = gr ? `<span style="font-size:.68rem;color:#7a9ab0;margin-left:5px">${gr.pts}pts</span>` : 
+    const grPts = gr ? `<span style="font-size:.68rem;color:#7a9ab0;margin-left:5px">${gr.pts}pts</span>` : '';
     return `
       <div class="team-row${isOut(e)?' eliminated':''}" onclick="toggleExpand('${tid}')">
         <div class="team-row-flag-bg">${flagImg(e.team,'flag-row')}</div>
@@ -1458,7 +1458,7 @@ function renderTeamStats(st) {
   const inL=entries.filter(e=>!isOut(e)&&!isTBD(e)), tbdL=entries.filter(isTBD), outL=entries.filter(isOut);
   const followedTeams = getFollows().teams;
   const followedEntries = entries.filter(e=>followedTeams.includes(e.team));
-  let html=
+  let html='';
   if(followedEntries.length) html+=`<div class="sec-hdr sec-hdr-following">⭐ Following — ${followedEntries.length} teams</div>`+followedEntries.map(makeRow).join('');
   if(inL.length)  html+=`<div class="sec-hdr">🟢 Still In — ${inL.length}</div>`+inL.map(makeRow).join('');
   if(tbdL.length) html+=`<div class="sec-hdr">⏳ Best-Third TBD — ${tbdL.length}</div>`+tbdL.map(makeRow).join('');
@@ -1517,7 +1517,7 @@ function renderGroups(st) {
       const isThrough=isDone&&(t.rank<=2||(t.rank===3&&st.bestThird.has(t.team)));
       const isPending=t.rank===3&&isDone&&!st.allGroupsDone;
       const isElim=isDone&&(t.rank>=4||(t.rank===3&&st.allGroupsDone&&!st.bestThird.has(t.team)));
-      const cls=isThrough?'through':isPending?'pending-third':isElim?'eliminated':
+      const cls=isThrough?'through':isPending?'pending-third':isElim?'eliminated':'';
       const synd=TEAM_MAP[t.team];
       const hasSyndicate=!!synd;
       return `<div class="group-team-row ${cls}" onclick="showModal('${escQ(t.team)}')">
@@ -1549,7 +1549,6 @@ function renderGroups(st) {
 // ── RENDER: BRACKET ───────────────────────────────────────────────────────────
 function renderFixtures(st) {
   const KO_STAGES = ['LAST_32','LAST_16','QUARTER_FINALS','SEMI_FINALS','THIRD_PLACE','FINAL'];
-  |
 
   const makeCard = m => {
     const h = norm(m.home), a = norm(m.away);
@@ -1572,12 +1571,12 @@ function renderFixtures(st) {
     const legendHtml = evs.length ? `<div class="live-ev-legend">
       <div class="live-ev-legend-item"><div class="live-ev-dot" style="background:${hC}"></div>${m.home}</div>
       <div class="live-ev-legend-item"><div class="live-ev-dot" style="background:${aC}"></div>${m.away}</div>
-    </div>` : 
+    </div>` : ''
 
     const evHtml = evs.length ? `<div class="live-events">${evs.map(e=>{
       const isH = norm(e.team)===h;
       return `<div class="live-ev"><span class="live-ev-min">${e.minute}'</span><span class="live-ev-icon">${e.type==='redcard'?'&#128125;':'&#9917;'}</span><span class="live-ev-player">${e.player}${e.ownGoal?' (og)':e.penalty?' (pen)':''}</span><span class="live-ev-dot" style="background:${isH?hC:aC}"></span></div>`;
-    }).join('')}</div>${legendHtml}` : 
+    }).join('')}</div>${legendHtml}` : ''
 
     return `<div class="live-card${isLive?' is-live':' is-upcoming'}">
       <div class="live-card-hdr"><span>${fmtDate(m.utcDate)} &middot; ${m.venue||''}</span>${badge}</div>
@@ -1609,7 +1608,7 @@ function renderFixtures(st) {
   const upcoming = st.allMatches.filter(m=>(m.status==='SCHEDULED'||m.status==='TIMED') && notLive(m))
                      .sort((a,b)=>new Date(a.utcDate)-new Date(b.utcDate));
 
-  let html = 
+  let html = '';
 
   if (liveMatches.length) {
     html += `<div class="sec-hdr">&#128308; Live Now &mdash; ${liveMatches.length} match${liveMatches.length!==1?'es':''}</div>`;
@@ -1620,12 +1619,12 @@ function renderFixtures(st) {
   const groups = {};
   for (const m of upcoming) {
     if (m.stage !== 'GROUP_STAGE') continue;
-    const g = m.group||'GROUP_?';
+    const g = m.group||'GROUP_UNKNOWN';
     if (!groups[g]) groups[g] = [];
     groups[g].push(m);
   }
   for (const g of Object.keys(groups).sort()) {
-    const label = 'Group ' + g.replace('GROUP_','');
+    const label = 'Group ' + (g==='GROUP_UNKNOWN' ? '?' : g.replace('GROUP_',''));
     const matches = groups[g];
     html += `<div class="sec-hdr">${label}</div>`;
     html += matches.map(makeCard).join('');
@@ -1792,7 +1791,7 @@ function renderFinalPage(st) {
         ${inFinal?'<span class="final-boot-tag">IN THE FINAL</span>':''}
       </div>`;
     }).join('')}
-  </div>` : 
+  </div>` : ''
 
   // ── Prediction (local pick only — stored per-browser, not crowd-sourced) ──
   const predKey = `wc2026_final_pick_${final.utcDate}`;
@@ -1804,7 +1803,7 @@ function renderFinalPage(st) {
       <button class="final-predict-btn${savedPick===a?' picked':''}" onclick="finalMakePick('${escQ(a)}','${final.utcDate}')">${teamCrest(a,'crest-sm')} ${a}</button>
     </div>
     ${savedPick?`<div class="final-predict-note">You picked <strong>${savedPick}</strong> — only visible on this device.</div>`:''}
-  </div>` : 
+  </div>` : ''
 
   document.getElementById('content').innerHTML = heroHtml + roadHtml + statsHtml + bootHtml + predictHtml + `<div style="height:20px"></div>`;
 
@@ -1863,9 +1862,9 @@ function renderGoldenBoot(st) {
   const makeRow = (s, rank) => {
     const synd = TEAM_MAP[s.team];
     const clickable = SYND_TEAMS.has(s.team);
-    const onclick = clickable ? `onclick="showModal('${escQ(s.team)}');setTimeout(()=>switchModalTab('squad'),80)"` : 
+    const onclick = clickable ? `onclick="showModal('${escQ(s.team)}');setTimeout(()=>switchModalTab('squad'),80)"` : ''
     const rankIcon = rank<=3 ? ['🥇','🥈','🥉'][rank-1] : `#${rank}`;
-    const penNote = s.pens ? `<span class="boot-pen">(${s.pens} pen)</span>` : 
+    const penNote = s.pens ? `<span class="boot-pen">(${s.pens} pen)</span>` : '';
     const isFollowed = followedPlayers.includes(s.player);
     return `<div class="boot-row${isFollowed?' followed':''}" data-player="${escQ(s.player)}">
       <div class="boot-inner" ${onclick} style="${clickable?'cursor:pointer':''}">
@@ -1887,7 +1886,7 @@ function renderGoldenBoot(st) {
   };
 
   const followed = scorers.filter(s=>followedPlayers.includes(s.player));
-  let html = 
+  let html = '';
   if (followed.length) {
     html += `<div class="sec-hdr sec-hdr-following">⭐ Following — ${followed.length} player${followed.length!==1?'s':''}</div>`;
     html += followed.map(s=>makeRow(s, rankOf[scorers.indexOf(s)])).join('');
@@ -1900,7 +1899,6 @@ function renderGoldenBoot(st) {
 // ── RENDER: RESULTS ───────────────────────────────────────────────────────────
 function renderResults(st) {
   const KO_STAGES = ['LAST_32','LAST_16','QUARTER_FINALS','SEMI_FINALS','THIRD_PLACE','FINAL'];
-  |
 
   const finished = st.allMatches
     .filter(m=>m.status==='FINISHED')
@@ -1917,7 +1915,7 @@ function renderResults(st) {
     const isKO = KO_STAGES.includes(m.stage);
     const hF = flagImg(norm(m.home),'flag-card'), aF = flagImg(norm(m.away),'flag-card');
 
-    let hFate = '', aFate = 
+    let hFate = '', aFate = '';
     if (isKO) {
       const hWon = m.winner==='HOME_TEAM', aWon = m.winner==='AWAY_TEAM';
       if (hWon)      { hFate = `<div class="bracket-fate bracket-fate-thru">&#10003; Through</div>`; aFate = `<div class="bracket-fate bracket-fate-out">&#10005; Out</div>`; }
@@ -1935,12 +1933,12 @@ function renderResults(st) {
     const legendHtml = evs.length ? `<div class="live-ev-legend">
       <div class="live-ev-legend-item"><div class="live-ev-dot" style="background:${hC}"></div>${m.home}</div>
       <div class="live-ev-legend-item"><div class="live-ev-dot" style="background:${aC}"></div>${m.away}</div>
-    </div>` : 
+    </div>` : ''
 
     const evHtml = evs.length ? `<div class="live-events">${evs.map(e=>{
       const isH = norm(e.team)===h;
       return `<div class="live-ev"><span class="live-ev-min">${e.minute}'</span><span class="live-ev-icon">${e.type==='redcard'?'&#128125;':'&#9917;'}</span><span class="live-ev-player">${e.player}${e.ownGoal?' (og)':e.penalty?' (pen)':''}</span><span class="live-ev-dot" style="background:${isH?hC:aC}"></span></div>`;
-    }).join('')}</div>${legendHtml}` : 
+    }).join('')}</div>${legendHtml}` : ''
 
     const mst = m.stats||{}, hst = mst[h], ast = mst[a];
     const statsHtml = hst ? `<div class="live-stats">
@@ -1949,7 +1947,7 @@ function renderResults(st) {
       <div class="live-stat-r"><span class="lsv">${hst.shots}</span><span class="lsl">Shots</span><span class="lsv r">${ast?.shots||0}</span></div>
       <div class="live-stat-r"><span class="lsv">${hst.shotsOnTarget}</span><span class="lsl">On Target</span><span class="lsv r">${ast?.shotsOnTarget||0}</span></div>
       ${m.attendance?`<div class="live-stat-r" style="margin-top:2px"><span class="lsl" style="text-align:left;color:rgba(255,255,255,0.56)">&#128101; ${m.attendance.toLocaleString()}</span></div>`:''}
-    </div>` : m.attendance ? `<div class="live-stats"><div class="live-stat-r"><span class="lsl" style="text-align:left;color:rgba(255,255,255,0.56)">&#128101; ${m.attendance.toLocaleString()}</span></div></div>` : 
+    </div>` : m.attendance ? `<div class="live-stats"><div class="live-stat-r"><span class="lsl" style="text-align:left;color:rgba(255,255,255,0.56)">&#128101; ${m.attendance.toLocaleString()}</span></div></div>` : ''
 
     return `<div class="live-card">
       <div class="live-card-hdr"><span>${fmtDate(m.utcDate)} &middot; ${m.venue||''}</span><span class="finished-badge">FT</span></div>
@@ -1973,7 +1971,7 @@ function renderResults(st) {
     </div>`;
   };
 
-  let html = 
+  let html = '';
 
   // KO rounds most recent first (most dramatic first)
   for (const stage of [...KO_STAGES].reverse()) {
@@ -1986,12 +1984,12 @@ function renderResults(st) {
   // Group stage — most recent group first, most recent match within each group first
   const groups = {};
   for (const m of finished.filter(m=>m.stage==='GROUP_STAGE')) {
-    const g = m.group||'GROUP_?';
+    const g = m.group||'GROUP_UNKNOWN';
     if (!groups[g]) groups[g] = [];
     groups[g].push(m);
   }
   for (const g of Object.keys(groups).sort().reverse()) {
-    const label = 'Group ' + g.replace('GROUP_','');
+    const label = 'Group ' + (g==='GROUP_UNKNOWN' ? '?' : g.replace('GROUP_',''));
     html += `<div class="sec-hdr">${label}</div>`;
     html += groups[g].map(makeCard).join('');
   }
@@ -2015,9 +2013,9 @@ function renderAllTeams(st) {
 
   const makeRow = e => {
     const sc=(lastScorers[e.team]||[]).slice(0,3);
-    const scStr=sc.length ? sc.map(s=>`${s.player} ${s.goals}g`).join(' · ') : 
+    const scStr=sc.length ? sc.map(s=>`${s.player} ${s.goals}g`).join(' · ') : '';
     const gr=st.groupRanks[e.team];
-    const grPts=gr?`<span style="font-size:.65rem;color:#7a9ab0;margin-top:2px;display:block">${gr.pts}pts in group</span>`:
+    const grPts=gr?`<span style="font-size:.65rem;color:#7a9ab0;margin-top:2px;display:block">${gr.pts}pts in group</span>`:'';
     return `
       <div class="at-row${isOut(e)?' eliminated':''}" onclick="showModal('${escQ(e.team)}')">
         <div>${teamCrest(e.team)}</div>
@@ -2030,7 +2028,7 @@ function renderAllTeams(st) {
   };
 
   const inL=entries.filter(e=>!isOut(e)), outL=entries.filter(isOut);
-  let html=
+  let html='';
   if(inL.length)  html+=`<div class="sec-hdr">🟢 Still In — ${inL.length}</div>`+inL.map(makeRow).join('');
   if(outL.length) html+=`<div class="sec-hdr">❌ Eliminated — ${outL.length}</div>`+outL.map(makeRow).join('');
   document.getElementById('content').innerHTML=html;
@@ -2071,11 +2069,11 @@ function showModal(team) {
 
   // Flag background
   const _mFlagEl = document.getElementById('m-flag-bg');
-  if (_mFlagEl) _mFlagEl.innerHTML = flagImg(team,'flag-modal') || 
+  if (_mFlagEl) _mFlagEl.innerHTML = flagImg(team,'flag-modal') || '';
 
   // Crest
   const crestEl = document.getElementById('m-crest');
-  if (td.logo) { crestEl.src=td.logo; crestEl.style.display= }
+  if (td.logo) { crestEl.src=td.logo; crestEl.style.display=''; }
   else { crestEl.style.display='none'; }
 
   document.getElementById('m-name').textContent = team;
@@ -2132,7 +2130,7 @@ function showModal(team) {
     document.getElementById('m-scorers-table').innerHTML=
       `<tr><th>Player</th><th style="text-align:right">Goals</th><th style="text-align:right">Assists</th></tr>`+
       sc.map(x=>`<tr><td>${x.player}</td><td class="sc-goals">${x.goals}</td><td class="sc-assists">${x.assists||0}</td></tr>`).join('');
-    scsec.style.display= scdiv.style.display=
+    scsec.style.display= scdiv.style.display='';
   } else { scsec.style.display='none'; scdiv.style.display='none'; }
   // Next fixture
   const upcoming=(lastState.matchesByTeam[team]||[]).find(m=>m.status==='SCHEDULED'||m.status==='TIMED');
@@ -2142,7 +2140,7 @@ function showModal(team) {
     document.getElementById('m-next').innerHTML=
       `<div class="nf-label">${KO_LONG[upcoming.stage]||'Group Stage'}</div>`+
       `${teamCrest(opp,'crest-sm')} <strong>vs ${opp}</strong> — ${fmtDT(upcoming.utcDate)}`;
-    nsec.style.display= ndiv.style.display=
+    nsec.style.display= ndiv.style.display='';
   } else { nsec.style.display='none'; ndiv.style.display='none'; }
 
 
@@ -2163,7 +2161,7 @@ function showModal(team) {
       <div class="event-list">
         ${goals.map(e=>{
           const isTeam=norm(e.team)===team;
-          const type=e.ownGoal?' (OG)':e.penalty?' (pen)':e.header?' (hdr)':
+          const type=e.ownGoal?' (OG)':e.penalty?' (pen)':e.header?' (hdr)':'';
           return `<div class="event-row">
             <span class="ev-min">${e.minute}</span>
             <span class="ev-icon">⚽</span>
@@ -2180,7 +2178,7 @@ function showModal(team) {
             <span class="ev-team-dot" style="background:${isTeam?teamColor_:oppColor}"></span>
           </div>`;
         }).join('')}
-      </div>` : 
+      </div>` : ''
 
     // Possession bar
     const mst=m.stats||{};
@@ -2205,7 +2203,7 @@ function showModal(team) {
         <span class="ms-val">${tst.shotsOnTarget}</span>
         <span class="ms-label">On Target</span>
         <span class="ms-val">${ost?.shotsOnTarget||0}</span>
-      </div>` : 
+      </div>` : ''
 
     return `<div class="modal-match">
       <span class="mm-date">${fmtDate(m.utcDate)}</span>
@@ -2235,13 +2233,13 @@ function showModal(team) {
     squad.forEach(p => (byPos[p.position]||byPos['?']).push(p));
 
     const posLabel={'GK':'Goalkeepers','DEF':'Defenders','MID':'Midfielders','FWD':'Forwards','?':'Others'};
-    let squadHtml=
+    let squadHtml=''
     for (const pos of ['GK','DEF','MID','FWD','?']) {
       const players=byPos[pos]; if(!players.length) continue;
       squadHtml+=`<div class="squad-pos-hdr">${posLabel[pos]}</div>`;
       squadHtml+=players.map(p=>{
         const sc=scorerMap[p.name]||scorerMap[p.name.split(' ').pop()];
-        const scStr=sc?`${sc.goals>0?sc.goals+'⚽':''}${sc.assists>0?' '+sc.assists+'🅰️':''}`.trim():
+        const scStr=sc?`${sc.goals>0?sc.goals+'⚽':''}${sc.assists>0?' '+sc.assists+'🅰️':''}`.trim():''
         return `<div class="squad-row">
           <span class="squad-shirt">${p.shirt||'—'}</span>
           <span class="squad-name">${p.name}</span>
@@ -2293,7 +2291,7 @@ function renderBanner(st) {
     const isDone = type === 'done';
 
     // ── Result colouring ──────────────────────────────────────────────────────
-    let scoreMid, hFate = '', aFate = 
+    let scoreMid, hFate = '', aFate =''
     if (isDone) {
       const hWon = m.winner==='HOME_TEAM', aWon = m.winner==='AWAY_TEAM';
       const hCls = hWon ? 'lz-col-win' : aWon ? 'lz-col-loss' : 'lz-col-draw';
@@ -2341,7 +2339,7 @@ function renderBanner(st) {
     if (next) {
       b.innerHTML = `<div class="lz-scroll lz-single">${makeCard(next, 'upcoming')}</div>`;
       b.className = 'visible';
-    } else { b.className =  }
+    } else { b.className = ''; }
     return;
   }
 
@@ -2357,7 +2355,7 @@ function renderBanner(st) {
     ...upcoming.map(m => makeCard(m, 'upcoming')),
   ];
 
-  const single = allCards.length === 1 ? ' lz-single' : 
+  const single = allCards.length === 1 ? ' lz-single' :''
   const hdr = live.length
     ? `<div class="lz-live-header"><div class="lz-dot"></div><div class="lz-header-text">${live.length} game${live.length!==1?'s':''} live now</div></div>`
     : 
@@ -2408,7 +2406,7 @@ function renderStats(st) {
 
   // Live pill
   document.getElementById('live-label').innerHTML = st.liveCount>0
-    ? `<span class="live-pill">LIVE UPDATES</span>` : 
+    ? `<span class="live-pill">LIVE UPDATES</span>` : '';
 }
 
 // ── ESPN DIRECT PARSER ────────────────────────────────────────────────────────
@@ -2453,7 +2451,7 @@ function parseESPN(data) {
     const slug=ev.season?.slug||'group-stage';
     const stage=SLUG_TO_STAGE[slug]||'GROUP_STAGE';
     let group=null;
-    const alt=comp.altGameNote||
+    const alt=comp.altGameNote||'';
     if(alt.includes('Group')&&stage==='GROUP_STAGE'){
       const l=alt.split('Group ').pop().trim();
       if(l.length===1) group='GROUP_'+l;
@@ -2488,9 +2486,9 @@ function parseESPN(data) {
       };
     }
 
-    let headline=
+    let headline='';
     for(const hl of comp.headlines||[])
-      if(hl.type==='Recap'||hl.type==='GameSummary'){headline=hl.shortLinkText||hl.description||break;}
+      if(hl.type==='Recap'||hl.type==='GameSummary'){headline=hl.shortLinkText||hl.description||'';break;}
 
     matches.push({
       utcDate:ev.date,status,stage,group,home,away,homeScore,awayScore,winner,
@@ -2598,8 +2596,8 @@ async function loadSquads() {
   } catch(e){ /* squads.json not available yet */ }
 }
 
-function starTeam(name)     { return isFollowingTeam(name)     ? '⭐ ' :  }
-function starPlayer(name)   { return isFollowingPlayer(name)   ? '⭐ ' :  }
+function starTeam(name)     { return isFollowingTeam(name)     ? '⭐ ' : ''; }
+function starPlayer(name)   { return isFollowingPlayer(name)   ? '⭐ ' : ''; }
 
 // ── FOLLOW SYSTEM ─────────────────────────────────────────────────────────────
 function getFollows() {
@@ -2662,14 +2660,14 @@ loadSquads();
       overlay.style.opacity = '0';
       setTimeout(()=>{
         closeModalForce();
-        modal.style.transition = modal.style.transform = 
-        overlay.style.transition = overlay.style.opacity = 
+        modal.style.transition = modal.style.transform = '';
+        overlay.style.transition = overlay.style.opacity = '';
       }, 250);
     } else {
       modal.style.transition = 'transform .2s ease';
-      modal.style.transform = 
-      overlay.style.background = 
-      setTimeout(()=>{ modal.style.transition= }, 200);
+      modal.style.transform = '';
+      overlay.style.background = '';
+      setTimeout(()=>{ modal.style.transition=''; }, 200);
     }
   });
 })();
