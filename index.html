@@ -1139,14 +1139,13 @@ const ALIASES = {
 };
 const norm = n => ALIASES[n] || n;
 
-// ── FLAG IMAGES (flagpedia.net) ───────────────────────────────────────────────
-const FLAG_CDN_SM = 'https://flagpedia.net/data/flags/w160/';
-const FLAG_CDN_LG = 'https://flagpedia.net/data/flags/w640/';
+// ── FLAG IMAGES (flagcdn.com — waving 4:3 PNG) ───────────────────────────────
+const FLAG_CDN_SM = 'https://flagcdn.com/48x36/';   // inline
+const FLAG_CDN_LG = 'https://flagcdn.com/160x120/'; // backgrounds
 function flagIso(team) {
   const s = SYNDICATE.find(x => x.team === team || x.team === norm(team));
   return s?.iso || null;
 }
-// Returns an <img> sized by CSS class. Large backgrounds use w640, inline uses w160.
 function flagImg(team, cls='flag-inline') {
   const iso = flagIso(team);
   if (!iso) return '';
@@ -2928,8 +2927,8 @@ function renderAbout() {
       </div>
       <div class="about-card">
         <div class="about-card-title">🏴󠁧󠁢󠁥󠁮󠁧󠁿 Flag images</div>
-        <div class="about-card-body">Country flag images served by <a href="https://flagpedia.net" target="_blank">flagpedia.net</a> — high-resolution PNGs for every nation.</div>
-        <span class="about-tag">flagpedia.net</span>
+        <div class="about-card-body">Country flag images (waving style, 4:3 ratio) served by <a href="https://flagcdn.com" target="_blank">flagcdn.com</a> — consistent sizing across all 250+ countries.</div>
+        <span class="about-tag">flagcdn.com</span>
       </div>
     </div>
 
