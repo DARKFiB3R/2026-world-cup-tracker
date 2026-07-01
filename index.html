@@ -386,23 +386,25 @@ body[data-theme="light"] .team-row-flag-bg { opacity: .24; }
 .live-card { margin: 10px 14px; border-radius: 14px; overflow: hidden; border: 1px solid rgba(255,255,255,.09); background: rgba(0,0,0,.3); backdrop-filter: blur(12px); position: relative; }
 .live-card.is-live { border-color: rgba(192,57,43,.45); box-shadow: 0 0 24px rgba(192,57,43,.1); }
 .live-card.is-upcoming { border-color: rgba(59,143,212,.25); }
+.live-score-row { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center; padding: 16px 14px 10px; position: relative; }
 .lc-flag-home, .lc-flag-away {
-  position: absolute; top: 50%; font-size: 5.5rem; line-height: 1;
-  opacity: .15; pointer-events: none; z-index: 0; transform: translateY(-50%);
+  position: absolute; top: 0; bottom: 0; font-size: 7rem; line-height: 1;
+  opacity: .22; pointer-events: none; z-index: 0;
+  display: flex; align-items: center;
 }
 .lc-flag-home {
   left: 4px;
-  -webkit-mask-image: linear-gradient(to right, black 0%, black 30%, transparent 80%);
-  mask-image: linear-gradient(to right, black 0%, black 30%, transparent 80%);
+  -webkit-mask-image: linear-gradient(to right, black 0%, black 35%, transparent 85%);
+  mask-image: linear-gradient(to right, black 0%, black 35%, transparent 85%);
 }
 .lc-flag-away {
   right: 4px;
-  -webkit-mask-image: linear-gradient(to left, black 0%, black 30%, transparent 80%);
-  mask-image: linear-gradient(to left, black 0%, black 30%, transparent 80%);
+  -webkit-mask-image: linear-gradient(to left, black 0%, black 35%, transparent 85%);
+  mask-image: linear-gradient(to left, black 0%, black 35%, transparent 85%);
 }
 body[data-theme="light"] .lc-flag-home,
-body[data-theme="light"] .lc-flag-away { opacity: .22; }
-.live-score-row { position: relative; z-index: 1; }
+body[data-theme="light"] .lc-flag-away { opacity: .28; }
+.live-team, .live-score-box { position: relative; z-index: 1; }
 .live-card-hdr { display: flex; align-items: center; justify-content: space-between; padding: 8px 14px; font-size: .7rem; color: rgba(255,255,255,.6); border-bottom: 1px solid rgba(255,255,255,.06); }
 .live-badge-big { background: #c0392b; color: #fff; font-size: .62rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; animation: blink 1s infinite; }
 .finished-badge { background: rgba(255,255,255,.1); color: rgba(255,255,255,.6); font-size: .62rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
@@ -479,7 +481,6 @@ body[data-theme="light"] .lz-score-num.lz-ft { color: #374151; }
 body[data-theme="light"] .lz-results-bar { border-top-color: #e2e5ee; }
 body[data-theme="light"] .lz-result-pill { background: #f4f6fb; border-color: #e2e5ee; color: #374151; }
 body[data-theme="light"] .lz-result-pill.synd { border-color: #fcd34d; color: #111827; }
-.live-score-row { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center; padding: 16px 14px 10px; }
 .live-team { display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; }
 .live-team:hover .live-team-name { color: #2ecc71; }
 .live-team-name { font-size: .85rem; font-weight: 700; text-align: center; transition: color .15s; }
@@ -1528,18 +1529,13 @@ function renderGroups(st) {
 
 // ── RENDER: BRACKET ───────────────────────────────────────────────────────────
 function renderFixtures(st) {
-  const KO_STAGES = ['LAST_32','LAST_16','QUARTER_FINALS','SEMI_FINALS','THIRD_PLACE','FINAL'];
-
-  const flag = team => {
-    const s = SYNDICATE.find(x=>x.team===team);
-    return s?.flag||'';
-  };
+  const flag = team => SYNDICATE.find(x=>x.team===team)?.flag||'';
 
   const makeCard = m => {
     const h = norm(m.home), a = norm(m.away);
     const hC = lastTeams[h]?.color||'#2ecc71', aC = lastTeams[a]?.color||'#3b8fd4';
     const isLive = m.status==='IN_PLAY'||m.status==='PAUSED';
-    const isKO   = KO_STAGES.includes(m.stage);
+    const hF = flag(m.home), aF = flag(m.away);
 
     const badge = isLive
       ? `<span class="live-badge-big">&#128308; LIVE</span>`
@@ -1552,7 +1548,6 @@ function renderFixtures(st) {
     const goals = (m.events||[]).filter(e=>e.type==='goal');
     const reds  = (m.events||[]).filter(e=>e.type==='redcard');
     const evs   = [...goals,...reds].sort((a,b)=>(parseInt(a.minute)||0)-(parseInt(b.minute)||0));
-    const hF = flag(m.home), aF = flag(m.away);
 
     const legendHtml = evs.length ? `<div class="live-ev-legend">
       <div class="live-ev-legend-item"><div class="live-ev-dot" style="background:${hC}"></div>${m.home}</div>
@@ -1561,20 +1556,21 @@ function renderFixtures(st) {
 
     const evHtml = evs.length ? `<div class="live-events">${evs.map(e=>{
       const isH = norm(e.team)===h;
-      return `<div class="live-ev"><span class="live-ev-min">${e.minute}'</span><span class="live-ev-icon">${e.type==='redcard'?'&#127득':'&#9917;'}</span><span class="live-ev-player">${e.player}${e.ownGoal?' (og)':e.penalty?' (pen)':''}</span><span class="live-ev-dot" style="background:${isH?hC:aC}"></span></div>`;
+      return `<div class="live-ev"><span class="live-ev-min">${e.minute}'</span><span class="live-ev-icon">${e.type==='redcard'?'&#128125;':'&#9917;'}</span><span class="live-ev-player">${e.player}${e.ownGoal?' (og)':e.penalty?' (pen)':''}</span><span class="live-ev-dot" style="background:${isH?hC:aC}"></span></div>`;
     }).join('')}</div>${legendHtml}` : '';
 
-    const dateLine = `<div style="font-size:.62rem;color:rgba(255,255,255,.45);margin-bottom:3px">${fmtDate(m.utcDate)}</div>`;
-
     return `<div class="live-card${isLive?' is-live':' is-upcoming'}">
-      ${hF?`<div class="lc-flag-home">${hF}</div>`:''}
-      ${aF?`<div class="lc-flag-away">${aF}</div>`:''}
-      <div class="live-card-hdr" style="position:relative;z-index:1"><span>${m.venue||''}</span>${badge}</div>
+      <div class="live-card-hdr"><span>${m.venue||''}</span>${badge}</div>
       <div class="live-score-row">
+        ${hF?`<div class="lc-flag-home">${hF}</div>`:''}
+        ${aF?`<div class="lc-flag-away">${aF}</div>`:''}
         <div class="live-team" onclick="showModal('${escQ(h)}')">
           ${teamCrest(h,'crest')}<div class="live-team-name">${starTeam(h)}${h}</div>
         </div>
-        <div class="live-score-box">${dateLine}${scoreHtml}</div>
+        <div class="live-score-box">
+          <div style="font-size:.62rem;color:rgba(255,255,255,.45);margin-bottom:3px">${fmtTime(m.utcDate)}</div>
+          ${scoreHtml}
+        </div>
         <div class="live-team" onclick="showModal('${escQ(a)}')">
           ${teamCrest(a,'crest')}<div class="live-team-name">${starTeam(a)}${a}</div>
         </div>
@@ -1584,40 +1580,28 @@ function renderFixtures(st) {
   };
 
   const liveMatches = st.allMatches.filter(m=>m.status==='IN_PLAY'||m.status==='PAUSED');
-  const upcoming    = st.allMatches.filter(m=>m.status==='SCHEDULED'||m.status==='TIMED')
-                        .sort((a,b)=>new Date(a.utcDate)-new Date(b.utcDate));
-  const liveIds     = new Set(liveMatches.map(m=>m.espnId||m.utcDate+m.home+m.away));
-
-  // Build sections: group stage by group, then KO by round — upcoming only
-  // Collect in round order, then reverse so soonest rounds appear first
-  const sections = [];
-
-  const groups = {};
-  for (const m of upcoming) {
-    if (m.stage !== 'GROUP_STAGE') continue;
-    const g = m.group||'GROUP_?';
-    if (!groups[g]) groups[g] = [];
-    groups[g].push(m);
-  }
-  for (const g of Object.keys(groups).sort()) {
-    sections.push({ label: 'Group ' + g.replace('GROUP_',''), matches: groups[g] });
-  }
-  for (const stage of KO_STAGES) {
-    const matches = upcoming.filter(m=>m.stage===stage);
-    if (matches.length) sections.push({ label: KO_LONG[stage]||stage, matches });
-  }
-  sections.reverse(); // Furthest-future rounds first, soonest-upcoming last → scroll to bottom for next game
+  const upcoming    = st.allMatches
+    .filter(m=>m.status==='SCHEDULED'||m.status==='TIMED')
+    .sort((a,b)=>new Date(a.utcDate)-new Date(b.utcDate));
 
   let html = '';
 
+  // Live pinned at top
   if (liveMatches.length) {
     html += `<div class="sec-hdr">&#128308; Live Now &mdash; ${liveMatches.length} match${liveMatches.length!==1?'es':''}</div>`;
     html += liveMatches.map(makeCard).join('');
   }
 
-  for (const sec of sections) {
-    html += `<div class="sec-hdr">${sec.label} &mdash; ${sec.matches.length} match${sec.matches.length!==1?'es':''}</div>`;
-    html += sec.matches.map(makeCard).join('');
+  // Upcoming grouped by date, soonest first
+  const byDate = {};
+  for (const m of upcoming) {
+    const d = fmtDate(m.utcDate);
+    if (!byDate[d]) byDate[d] = [];
+    byDate[d].push(m);
+  }
+  for (const [date, matches] of Object.entries(byDate)) {
+    html += `<div class="sec-hdr">${date}</div>`;
+    html += matches.map(makeCard).join('');
   }
 
   if (!liveMatches.length && !upcoming.length) {
@@ -1881,15 +1865,11 @@ function renderGoldenBoot(st) {
 // ── RENDER: RESULTS ───────────────────────────────────────────────────────────
 function renderResults(st) {
   const KO_STAGES = ['LAST_32','LAST_16','QUARTER_FINALS','SEMI_FINALS','THIRD_PLACE','FINAL'];
-
-  const flag = team => {
-    const s = SYNDICATE.find(x=>x.team===team);
-    return s?.flag||'';
-  };
+  const flag = team => SYNDICATE.find(x=>x.team===team)?.flag||'';
 
   const finished = st.allMatches
     .filter(m=>m.status==='FINISHED')
-    .sort((a,b)=>new Date(b.utcDate)-new Date(a.utcDate)); // most recent first
+    .sort((a,b)=>new Date(b.utcDate)-new Date(a.utcDate));
 
   if (!finished.length) {
     document.getElementById('content').innerHTML=`<div class="empty-state"><div class="empty-icon">&#10003;</div><div class="empty-title">No results yet</div></div>`;
@@ -1924,7 +1904,7 @@ function renderResults(st) {
 
     const evHtml = evs.length ? `<div class="live-events">${evs.map(e=>{
       const isH = norm(e.team)===h;
-      return `<div class="live-ev"><span class="live-ev-min">${e.minute}'</span><span class="live-ev-icon">${e.type==='redcard'?'&#127득':'&#9917;'}</span><span class="live-ev-player">${e.player}${e.ownGoal?' (og)':e.penalty?' (pen)':''}</span><span class="live-ev-dot" style="background:${isH?hC:aC}"></span></div>`;
+      return `<div class="live-ev"><span class="live-ev-min">${e.minute}'</span><span class="live-ev-icon">${e.type==='redcard'?'&#128125;':'&#9917;'}</span><span class="live-ev-player">${e.player}${e.ownGoal?' (og)':e.penalty?' (pen)':''}</span><span class="live-ev-dot" style="background:${isH?hC:aC}"></span></div>`;
     }).join('')}</div>${legendHtml}` : '';
 
     const mst = m.stats||{}, hst = mst[h], ast = mst[a];
@@ -1937,10 +1917,10 @@ function renderResults(st) {
     </div>` : m.attendance ? `<div class="live-stats"><div class="live-stat-r"><span class="lsl" style="text-align:left;color:rgba(255,255,255,0.56)">&#128101; ${m.attendance.toLocaleString()}</span></div></div>` : '';
 
     return `<div class="live-card">
-      ${hF?`<div class="lc-flag-home">${hF}</div>`:''}
-      ${aF?`<div class="lc-flag-away">${aF}</div>`:''}
-      <div class="live-card-hdr" style="position:relative;z-index:1"><span>${m.venue||''}</span><span class="finished-badge">FT</span></div>
+      <div class="live-card-hdr"><span>${m.venue||''}</span><span class="finished-badge">FT</span></div>
       <div class="live-score-row">
+        ${hF?`<div class="lc-flag-home">${hF}</div>`:''}
+        ${aF?`<div class="lc-flag-away">${aF}</div>`:''}
         <div class="live-team" onclick="showModal('${escQ(h)}')">
           ${teamCrest(h,'crest')}<div class="live-team-name">${starTeam(h)}${h}</div>
           ${hFate}
@@ -1959,7 +1939,6 @@ function renderResults(st) {
     </div>`;
   };
 
-  // Group by date, most recent first
   const byDate = {};
   for (const m of finished) {
     const d = fmtDate(m.utcDate);
@@ -1972,7 +1951,6 @@ function renderResults(st) {
     html += `<div class="sec-hdr">${date}</div>`;
     html += matches.map(makeCard).join('');
   }
-
   document.getElementById('content').innerHTML = html;
 }
 
