@@ -470,8 +470,13 @@ body[data-theme="light"] .lc-headline { color: #6b7280; }
 /* ── LIVE ZONE ── */
 #live-zone { display: none; background: var(--lz-bg); backdrop-filter: blur(14px); border-bottom: 1px solid var(--border); }
 #live-zone.visible { display: block; }
-#live-detail { display: none; overflow: hidden; border-bottom: 1px solid var(--border); background: #0a1628 center/cover no-repeat; }
-#live-detail.open { display: block; }
+#live-zone.lz-expanded { background: #0a1628 center/cover no-repeat; }
+#live-zone.lz-expanded .lz-live-header,
+#live-zone.lz-expanded .lz-scroll { display: none; }
+.lz-expanded-panel { position: relative; }
+.lz-expanded-panel .ld-hero { background: none; }
+.lz-expanded-panel .ld-hero::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(5,10,25,.35) 0%, rgba(5,10,25,.65) 100%); }
+.lz-expanded-panel .ld-body { background: rgba(5,10,25,.82); }
 .ld-hero { position: relative; overflow: hidden; background: none; }
 .ld-hero::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(5,10,25,.35) 0%, rgba(5,10,25,.65) 100%); }
 .ld-hero-content { position: relative; z-index: 1; padding: 14px 14px 18px; }
@@ -782,7 +787,6 @@ body.final-chrome-hidden .stats-strip-wrap,
 body.final-chrome-hidden .search-wrap,
 body.final-chrome-hidden .tab-bar-wrap,
 body.final-chrome-hidden #live-zone,
-body.final-chrome-hidden #live-detail,
 body.final-chrome-hidden #update-bar,
 body.final-chrome-hidden #inapp-banner { display: none !important; }
 
@@ -1002,7 +1006,6 @@ body[data-theme="light"] .modal-team-name { color:#111827; }
 <div id="update-bar" onclick="window.location.reload()">🔄 New version available — <strong>tap to update</strong></div>
 <div id="inapp-banner" style="cursor:pointer">👆 Tap here to open in your browser for best experience</div>
 <div id="live-zone"></div>
-<div id="live-detail"></div>
 
 
 <div class="stats-strip-wrap">
@@ -1737,24 +1740,11 @@ function renderFixtures(st) {
     </div>`;
   };
 
-  const liveIds  = new Set();
-  const liveMatches = st.allMatches.filter(m=>{
-    const live = m.status==='IN_PLAY'||m.status==='PAUSED';
-    if (live) liveIds.add(m.espnId||m.utcDate+m.home+m.away);
-    return live;
-  });
-  const notLive  = m => !liveIds.has(m.espnId||m.utcDate+m.home+m.away);
-  const upcoming = st.allMatches.filter(m=>(m.status==='SCHEDULED'||m.status==='TIMED') && notLive(m))
-                     .sort((a,b)=>new Date(a.utcDate)-new Date(b.utcDate));
-
+  // Upcoming grouped by round
   let html = '';
-
-  if (liveMatches.length) {
-    html += `<div class="sec-hdr">&#128308; Live Now &mdash; ${liveMatches.length} match${liveMatches.length!==1?'es':''}</div>`;
-    html += liveMatches.map(makeCard).join('');
-  }
-
-  // Group stage — one section per group A→L, soonest first within
+  const upcoming = st.allMatches
+    .filter(m => m.status==='SCHEDULED' || m.status==='TIMED')
+    .sort((a,b) => new Date(a.utcDate) - new Date(b.utcDate));
   const groups = {};
   for (const m of upcoming) {
     if (m.stage !== 'GROUP_STAGE' || !m.group) continue;
@@ -1793,9 +1783,7 @@ function renderFixtures(st) {
     html += finalMatches.map(makeCard).join('');
   }
 
-  if (!liveMatches.length && !upcoming.length) {
-    html = `<div class="empty-state"><div class="empty-icon">&#9917;</div><div class="empty-title">No upcoming fixtures</div><div class="empty-sub">All matches have been played.</div></div>`;
-  }
+  if (!html) html = `<div class="empty-state"><div class="empty-icon">&#9917;</div><div class="empty-title">No upcoming fixtures</div><div class="empty-sub">Live matches are shown in the strip above.</div></div>`;
   document.getElementById('content').innerHTML = html;
 }
 
@@ -2452,10 +2440,10 @@ function showLiveDetail(home, away, refresh=false) {
   );
   if (!m) return;
 
-  const panel = document.getElementById('live-detail');
+  const b = document.getElementById('live-zone');
 
-  // Toggle OFF only if user explicitly clicked (not a refresh call)
-  if (!refresh && _liveDetailMatch?.home===home && _liveDetailMatch?.away===away && panel.classList.contains('open')) {
+  // Toggle OFF only on explicit user click (not a refresh)
+  if (!refresh && _liveDetailMatch?.home===home && _liveDetailMatch?.away===away) {
     closeLiveDetail(); return;
   }
   _liveDetailMatch = {home, away};
@@ -2463,7 +2451,7 @@ function showLiveDetail(home, away, refresh=false) {
   const h = norm(m.home), a = norm(m.away);
   const hC = lastTeams[h]?.color||'#2ecc71', aC = lastTeams[a]?.color||'#3498db';
   const isLive = m.status==='IN_PLAY'||m.status==='PAUSED';
-  const isDone = m.status==='FINISHED';
+  const isDone  = m.status==='FINISHED';
 
   // ── Events ──────────────────────────────────────────────────────────────────
   const evs = (m.events||[])
@@ -2480,7 +2468,7 @@ function showLiveDetail(home, away, refresh=false) {
     let icon = '⚽', sub = '';
     if (e.type==='yellowcard') icon = '🟨';
     else if (e.type==='redcard') icon = '🟥';
-    else if (e.ownGoal) { icon = '⚽'; sub = 'Own goal'; }
+    else if (e.ownGoal) sub = 'Own goal';
     else if (e.penalty) sub = 'Penalty';
     else if (e.assist) sub = 'Assist: '+e.assist;
     return `<div class="ld-ev">
@@ -2492,56 +2480,53 @@ function showLiveDetail(home, away, refresh=false) {
       </div>
       <div class="ld-ev-dot" style="background:${isH?hC:aC}"></div>
     </div>`;
-  }).join('') : '<div style="font-size:.7rem;color:var(--text-dim);padding:6px 0">No events yet</div>';
+  }).join('') : '<div style="font-size:.7rem;color:rgba(255,255,255,.45);padding:6px 0">No events yet</div>';
 
   // ── Stats ────────────────────────────────────────────────────────────────────
   const mst = m.stats||{}, hst = mst[h], ast = mst[a];
   const statBar = (hv, av, lbl) => {
     const tot = (hv||0)+(av||0)||1;
-    const hp = Math.round((hv||0)/tot*100);
-    const ap = 100-hp;
+    const hp  = Math.round((hv||0)/tot*100);
     return `<div class="ld-stat-row">
       <span class="ld-sv">${hv||0}</span>
-      <div class="ld-bar-wrap">
+      <div class="ld-bar-wrap" style="position:relative">
         <div class="ld-bar home" style="width:${hp}%;background:${hC}"></div>
-        <div class="ld-bar away" style="width:${ap}%;right:0;background:${aC}"></div>
       </div>
       <span class="ld-sl">${lbl}</span>
-      <div class="ld-bar-wrap">
-        <div class="ld-bar away" style="width:${ap}%;background:${aC}"></div>
+      <div class="ld-bar-wrap" style="position:relative">
+        <div class="ld-bar away" style="width:${100-hp}%;background:${aC}"></div>
       </div>
       <span class="ld-sv r">${av||0}</span>
     </div>`;
   };
 
   const statsHtml = hst ? `
-    <div class="ld-poss-lbl"><span style="font-weight:700">${hst.possession}%</span><span style="font-size:.58rem;color:var(--text-dim)">Possession</span><span style="font-weight:700">${ast?.possession||0}%</span></div>
+    <div class="ld-poss-lbl"><span style="font-weight:700">${hst.possession}%</span><span style="font-size:.58rem;color:rgba(255,255,255,.45)">Possession</span><span style="font-weight:700">${ast?.possession||0}%</span></div>
     <div class="ld-poss-bar"><div class="ld-poss-fill" style="width:${hst.possession}%;background:${hC}"></div></div>
-    ${statBar(hst.shots, ast?.shots, 'Shots')}
-    ${statBar(hst.shotsOnTarget, ast?.shotsOnTarget, 'On Target')}
-    ${statBar(hst.corners, ast?.corners, 'Corners')}
-    ${hst.fouls!=null?statBar(hst.fouls, ast?.fouls, 'Fouls'):''}
-    ${hst.offsides!=null?statBar(hst.offsides, ast?.offsides, 'Offsides'):''}
-  ` : '<div style="font-size:.7rem;color:var(--text-dim)">Stats not yet available</div>';
+    ${statBar(hst.shots,ast?.shots,'Shots')}
+    ${statBar(hst.shotsOnTarget,ast?.shotsOnTarget,'On Target')}
+    ${statBar(hst.corners,ast?.corners,'Corners')}
+    ${hst.fouls?statBar(hst.fouls,ast?.fouls,'Fouls'):''}
+    ${hst.offsides?statBar(hst.offsides,ast?.offsides,'Offsides'):''}
+  ` : '<div style="font-size:.7rem;color:rgba(255,255,255,.45)">Stats not yet available</div>';
 
-  // ── Stadium image ─────────────────────────────────────────────────────────
+  // ── Stadium + stage ───────────────────────────────────────────────────────
   const stadImg = getStadiumImg(m.venue);
-
-  // ── KO stage label ────────────────────────────────────────────────────────
+  if (stadImg) { b.style.backgroundImage=`url('${stadImg}')`; b.style.backgroundSize='cover'; b.style.backgroundPosition='center'; }
+  else { b.style.backgroundImage=''; }
   const stageLbl = m.stage==='GROUP_STAGE'
     ? `Group ${(m.group||'').replace('GROUP_','')}`
     : (KO_LONG[m.stage]||m.stage||'');
 
-  panel.style.backgroundImage = stadImg ? `url('${stadImg}')` : '';
-  panel.style.backgroundSize = 'cover';
-  panel.style.backgroundPosition = 'center';
-
+  // ── Build expanded panel ──────────────────────────────────────────────────
+  const panel = document.createElement('div');
+  panel.className = 'lz-expanded-panel';
   panel.innerHTML = `
     <div class="ld-hero">
       <button class="ld-close" onclick="closeLiveDetail()">✕</button>
       <div class="ld-hero-content">
         <div class="ld-meta">
-          ${isLive?'<span><div class="ld-dot"></div> LIVE</span>':''}
+          ${isLive?'<span><div class="ld-dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#ff6b6b;animation:ldpulse 1.2s infinite;margin-right:3px"></div>LIVE</span>':''}
           ${stageLbl?`<span>${stageLbl}</span>`:''}
           ${m.venue?`<span>📍 ${m.venue}</span>`:''}
           ${m.attendance?`<span>👥 ${m.attendance.toLocaleString()}</span>`:''}
@@ -2566,28 +2551,33 @@ function showLiveDetail(home, away, refresh=false) {
           <div class="ld-section-title">📊 Stats</div>
           ${statsHtml}
           <div style="margin-top:12px">
-          <div class="ld-section-title">🟨 Discipline</div>
-          <div class="ld-disc-grid">
-            <div class="ld-disc-cell"><div class="ld-disc-num" style="color:#f1c40f">${hYellows}</div><div class="ld-disc-label">${h} Yellows</div><div class="ld-disc-bar" style="background:#f1c40f"></div></div>
-            <div class="ld-disc-cell"><div class="ld-disc-num" style="color:#e74c3c">${hReds}</div><div class="ld-disc-label">${h} Reds</div><div class="ld-disc-bar" style="background:#e74c3c"></div></div>
-            <div class="ld-disc-cell"><div class="ld-disc-num" style="color:#f1c40f">${aYellows}</div><div class="ld-disc-label">${a} Yellows</div><div class="ld-disc-bar" style="background:#f1c40f"></div></div>
-            <div class="ld-disc-cell"><div class="ld-disc-num" style="color:#e74c3c">${aReds}</div><div class="ld-disc-label">${a} Reds</div><div class="ld-disc-bar" style="background:#e74c3c"></div></div>
-          </div>
+            <div class="ld-section-title">🟨 Discipline</div>
+            <div class="ld-disc-grid">
+              <div class="ld-disc-cell"><div class="ld-disc-num" style="color:#f1c40f">${hYellows}</div><div class="ld-disc-label">${h} Yellows</div></div>
+              <div class="ld-disc-cell"><div class="ld-disc-num" style="color:#e74c3c">${hReds}</div><div class="ld-disc-label">${h} Reds</div></div>
+              <div class="ld-disc-cell"><div class="ld-disc-num" style="color:#f1c40f">${aYellows}</div><div class="ld-disc-label">${a} Yellows</div></div>
+              <div class="ld-disc-cell"><div class="ld-disc-num" style="color:#e74c3c">${aReds}</div><div class="ld-disc-label">${a} Reds</div></div>
+            </div>
           </div>
         </div>
       </div>
     </div>`;
-  panel.classList.add('open');
+
+  // Replace scroll content with expanded panel
+  b.classList.add('lz-expanded');
+  // Remove old expanded panel if any
+  b.querySelectorAll('.lz-expanded-panel').forEach(el=>el.remove());
+  b.appendChild(panel);
 }
 
 function closeLiveDetail() {
-  const panel = document.getElementById('live-detail');
-  if (_liveDetailMatch) {
-    panel.dataset.userClosedFor = norm(_liveDetailMatch.home)+'+'+norm(_liveDetailMatch.away);
-  }
-  panel.dataset.userClosed = '1';
+  const b = document.getElementById('live-zone');
+  b.classList.remove('lz-expanded');
+  b.style.backgroundImage = '';
+  b.querySelectorAll('.lz-expanded-panel').forEach(el=>el.remove());
+  if (_liveDetailMatch) b.dataset.userClosedFor = norm(_liveDetailMatch.home)+'+'+norm(_liveDetailMatch.away);
+  b.dataset.userClosed = '1';
   _liveDetailMatch = null;
-  panel.classList.remove('open');
 }
 
 // ── BANNER & STATS ────────────────────────────────────────────────────────────
@@ -2895,18 +2885,16 @@ async function update() {
     renderBanner(lastState);
     // Auto-expand first live match when a game kicks off; respect user closing it
     const liveNow = lastState.allMatches.filter(m=>m.status==='IN_PLAY'||m.status==='PAUSED');
-    const ldPanel = document.getElementById('live-detail');
-    // Clear userClosed flag when a different/new game starts
-    if (liveNow.length && ldPanel?.dataset.userClosed) {
-      const closedFor = ldPanel.dataset.userClosedFor;
+    const lzEl = document.getElementById('live-zone');
+    if (liveNow.length && lzEl?.dataset.userClosed) {
       const firstLive = norm(liveNow[0].home)+'+'+norm(liveNow[0].away);
-      if (closedFor !== firstLive) delete ldPanel.dataset.userClosed;
+      if (lzEl.dataset.userClosedFor !== firstLive) delete lzEl.dataset.userClosed;
     }
-    if (!liveNow.length && ldPanel) delete ldPanel.dataset.userClosed; // reset when no games live
-    if (liveNow.length && !ldPanel?.classList.contains('open') && !ldPanel?.dataset.userClosed) {
+    if (!liveNow.length && lzEl) { delete lzEl.dataset.userClosed; delete lzEl.dataset.userClosedFor; }
+    if (liveNow.length && !lzEl?.classList.contains('lz-expanded') && !lzEl?.dataset.userClosed) {
       showLiveDetail(liveNow[0].home, liveNow[0].away);
-    } else if (_liveDetailMatch && ldPanel?.classList.contains('open')) {
-      showLiveDetail(_liveDetailMatch.home, _liveDetailMatch.away, true); // refresh stats, skip toggle
+    } else if (_liveDetailMatch && lzEl?.classList.contains('lz-expanded')) {
+      showLiveDetail(_liveDetailMatch.home, _liveDetailMatch.away, true); // refresh
     }
     renderCurrentTab();
 
