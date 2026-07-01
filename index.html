@@ -2514,7 +2514,8 @@ function renderBanner(st) {
         ? `<div class="lz-date-row">${fmtCardDate(m.utcDate)} · ${fmtTime(m.utcDate)}</div>`
         : `<div class="lz-card-meta lz-meta-centered"><div class="lz-next-label">Next match · ${slbl(m)}</div></div>`;
 
-    return `<div class="${cls}" onclick="${isDone?"switchTab('results')":`showLiveDetail('${escQ(h)}','${escQ(a)}')`}">
+    const clickFn = isDone ? "switchTab('results')" : `showLiveDetail('${escQ(h)}','${escQ(a)}')`;
+    return `<div class="${cls}" onclick="${clickFn}">
       ${topRow}
       <div class="lz-teams-row">
         <div class="lz-side">${teamCrest(h,'lz-crest')}<div class="lz-name${hS?' lz-synd':''}">${starTeam(h)}${h}</div>${hFate}</div>
@@ -2756,7 +2757,12 @@ async function update() {
     lastState=processMatches(matches);
     renderStats(lastState);
     renderBanner(lastState);
-    // Refresh live detail panel if open
+    // Auto-expand detail panel for first live match if none was open before
+    const liveNow = lastState.allMatches.filter(m=>m.status==='IN_PLAY'||m.status==='PAUSED');
+    if (liveNow.length && !_liveDetailMatch) {
+      showLiveDetail(liveNow[0].home, liveNow[0].away);
+    }
+    // Refresh live detail panel if already open
     if (_liveDetailMatch && document.getElementById('live-detail')?.classList.contains('open')) {
       showLiveDetail(_liveDetailMatch.home, _liveDetailMatch.away);
     }
