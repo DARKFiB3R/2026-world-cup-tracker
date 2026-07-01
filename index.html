@@ -470,11 +470,11 @@ body[data-theme="light"] .lc-headline { color: #6b7280; }
 /* ── LIVE ZONE ── */
 #live-zone { display: none; background: var(--lz-bg); backdrop-filter: blur(14px); border-bottom: 1px solid var(--border); }
 #live-zone.visible { display: block; }
-#live-detail { display: none; overflow: hidden; border-bottom: 1px solid var(--border); }
+#live-detail { display: none; overflow: hidden; border-bottom: 1px solid var(--border); background: #0a1628 center/cover no-repeat; }
 #live-detail.open { display: block; }
-.ld-hero { position: relative; min-height: 220px; background: #0a1628 center/cover no-repeat; overflow: hidden; }
-.ld-hero::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(5,10,25,.55) 0%, rgba(5,10,25,.85) 60%, rgba(5,10,25,.97) 100%); }
-.ld-hero-content { position: relative; z-index: 1; padding: 18px 14px 22px; }
+.ld-hero { position: relative; overflow: hidden; background: none; }
+.ld-hero::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(5,10,25,.35) 0%, rgba(5,10,25,.65) 100%); }
+.ld-hero-content { position: relative; z-index: 1; padding: 14px 14px 18px; }
 .ld-close { position: absolute; top: 10px; right: 12px; z-index: 2; background: rgba(0,0,0,.45); border: 1px solid rgba(255,255,255,.2); color: rgba(255,255,255,.9); font-size: .85rem; cursor: pointer; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; }
 .ld-meta { font-size: .58rem; color: rgba(255,255,255,.5); letter-spacing: .8px; text-transform: uppercase; margin-bottom: 10px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .ld-teams { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; }
@@ -486,7 +486,7 @@ body[data-theme="light"] .lc-headline { color: #6b7280; }
 .ld-clock .ld-dot { width: 7px; height: 7px; border-radius: 50%; background: #ff6b6b; animation: ldpulse 1.2s infinite; flex-shrink: 0; }
 @keyframes ldpulse { 0%,100%{opacity:1} 50%{opacity:.25} }
 .ld-ft { font-size: .72rem; color: rgba(255,255,255,.45); margin-top: 4px; text-align: center; }
-.ld-body { padding: 14px 14px 18px; background: var(--surface-a); }
+.ld-body { padding: 14px 14px 18px; background: rgba(5,10,25,.82); }
 .ld-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 12px; }
 @media (max-width: 500px) { .ld-grid { grid-template-columns: 1fr; } }
 .ld-section-title { font-size: .58rem; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid var(--border-soft); }
@@ -510,7 +510,10 @@ body[data-theme="light"] .lc-headline { color: #6b7280; }
 .ld-ev-sub { font-size: .6rem; color: var(--text-dim); margin-top: 1px; }
 .ld-ev-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
 .ld-disc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.ld-disc-cell { background: var(--surface-b); border-radius: 8px; padding: 8px 10px; text-align: center; }
+.ld-disc-cell { background: rgba(255,255,255,.07); border-radius: 8px; padding: 8px 10px; text-align: center; }
+body[data-theme="light"] .ld-disc-cell { background: rgba(0,0,0,.12); }
+body[data-theme="light"] .ld-hero::after { background: linear-gradient(to bottom, rgba(10,20,50,.45) 0%, rgba(10,20,50,.72) 100%); }
+body[data-theme="light"] .ld-body { background: rgba(240,245,255,.88); }
 .ld-disc-num { font-size: 1.3rem; font-weight: 900; line-height: 1; }
 .ld-disc-label { font-size: .58rem; color: var(--text-dim); margin-top: 2px; }
 .ld-disc-bar { height: 3px; border-radius: 2px; margin: 4px auto 0; width: 40%; }
@@ -2523,15 +2526,18 @@ function showLiveDetail(home, away, refresh=false) {
 
   // ── Stadium image ─────────────────────────────────────────────────────────
   const stadImg = getStadiumImg(m.venue);
-  const heroStyle = stadImg ? `style="background-image:url('${stadImg}')"` : '';
 
   // ── KO stage label ────────────────────────────────────────────────────────
   const stageLbl = m.stage==='GROUP_STAGE'
     ? `Group ${(m.group||'').replace('GROUP_','')}`
     : (KO_LONG[m.stage]||m.stage||'');
 
+  panel.style.backgroundImage = stadImg ? `url('${stadImg}')` : '';
+  panel.style.backgroundSize = 'cover';
+  panel.style.backgroundPosition = 'center';
+
   panel.innerHTML = `
-    <div class="ld-hero" ${heroStyle}>
+    <div class="ld-hero">
       <button class="ld-close" onclick="closeLiveDetail()">✕</button>
       <div class="ld-hero-content">
         <div class="ld-meta">
