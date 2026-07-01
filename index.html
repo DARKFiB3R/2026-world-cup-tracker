@@ -2380,7 +2380,17 @@ function showModal(team) {
 function closeModal(e) { if(e.target===document.getElementById('overlay')) closeModalForce(); }
 function closeModalForce() { document.getElementById('overlay').classList.remove('open'); }
 
-// ── FIXTURES TAB ──────────────────────────────────────────────────────────────
+// ── LIVE ZONE CLICK DELEGATION ────────────────────────────────────────────────
+// Handles clicks on live/upcoming cards via data attributes (avoids onclick quoting hell)
+(function() {
+  document.addEventListener('click', function(e) {
+    const card = e.target.closest('[data-lhome]');
+    if (!card) return;
+    const home = card.dataset.lhome;
+    const away = card.dataset.laway;
+    if (home && away) showLiveDetail(home, away);
+  });
+})();
 function showMatchCentre() {
   if (!lastState) return;
   switchTab('fixtures');
@@ -2451,8 +2461,13 @@ function showLiveDetail(home, away) {
 }
 
 function closeLiveDetail() {
+  const panel = document.getElementById('live-detail');
+  if (_liveDetailMatch) {
+    panel.dataset.userClosedFor = norm(_liveDetailMatch.home)+'+'+norm(_liveDetailMatch.away);
+  }
+  panel.dataset.userClosed = '1';
   _liveDetailMatch = null;
-  document.getElementById('live-detail').classList.remove('open');
+  panel.classList.remove('open');
 }
 
 
@@ -2514,8 +2529,8 @@ function renderBanner(st) {
         ? `<div class="lz-date-row">${fmtCardDate(m.utcDate)} · ${fmtTime(m.utcDate)}</div>`
         : `<div class="lz-card-meta lz-meta-centered"><div class="lz-next-label">Next match · ${slbl(m)}</div></div>`;
 
-    const clickFn = isDone ? "switchTab('results')" : `showLiveDetail('${escQ(h)}','${escQ(a)}')`;
-    return `<div class="${cls}" onclick="${clickFn}">
+    const liveData = !isDone ? `data-lhome="${escQ(h)}" data-laway="${escQ(a)}"` : '';
+    return `<div class="${cls}" ${liveData} ${isDone?`onclick="switchTab('results')"`:''}>
       ${topRow}
       <div class="lz-teams-row">
         <div class="lz-side">${teamCrest(h,'lz-crest')}<div class="lz-name${hS?' lz-synd':''}">${starTeam(h)}${h}</div>${hFate}</div>
@@ -2757,14 +2772,20 @@ async function update() {
     lastState=processMatches(matches);
     renderStats(lastState);
     renderBanner(lastState);
-    // Auto-expand detail panel for first live match if none was open before
+    // Auto-expand first live match when a game kicks off; respect user closing it
     const liveNow = lastState.allMatches.filter(m=>m.status==='IN_PLAY'||m.status==='PAUSED');
-    if (liveNow.length && !_liveDetailMatch) {
-      showLiveDetail(liveNow[0].home, liveNow[0].away);
+    const ldPanel = document.getElementById('live-detail');
+    // Clear userClosed flag when a different/new game starts
+    if (liveNow.length && ldPanel?.dataset.userClosed) {
+      const closedFor = ldPanel.dataset.userClosedFor;
+      const firstLive = norm(liveNow[0].home)+'+'+norm(liveNow[0].away);
+      if (closedFor !== firstLive) delete ldPanel.dataset.userClosed;
     }
-    // Refresh live detail panel if already open
-    if (_liveDetailMatch && document.getElementById('live-detail')?.classList.contains('open')) {
-      showLiveDetail(_liveDetailMatch.home, _liveDetailMatch.away);
+    if (!liveNow.length && ldPanel) delete ldPanel.dataset.userClosed; // reset when no games live
+    if (liveNow.length && !ldPanel?.classList.contains('open') && !ldPanel?.dataset.userClosed) {
+      showLiveDetail(liveNow[0].home, liveNow[0].away);
+    } else if (_liveDetailMatch && ldPanel?.classList.contains('open')) {
+      showLiveDetail(_liveDetailMatch.home, _liveDetailMatch.away); // refresh stats
     }
     renderCurrentTab();
 
