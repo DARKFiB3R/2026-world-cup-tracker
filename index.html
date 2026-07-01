@@ -222,19 +222,41 @@ body::after {
 
 /* ── HEADER ── */
 header {
-  background: linear-gradient(135deg, rgba(10,40,20,.98) 0%, rgba(5,10,28,.98) 100%);
-  padding: 10px 6px 10px 6px;
-  border-bottom: 1px solid rgba(39,174,96,.4);
-  box-shadow: 0 4px 40px rgba(0,0,0,.4), 0 0 80px rgba(39,174,96,.05);
-  backdrop-filter: blur(12px);
-  display: flex; align-items: center; justify-content: space-between; gap: 4px;
+  background: linear-gradient(160deg, #0a1628 0%, #0d2137 50%, #091420 100%);
+  padding: 0 8px 0 6px;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  box-shadow: 0 2px 24px rgba(0,0,0,.5);
+  display: flex; align-items: center; justify-content: space-between; gap: 6px;
   position: sticky; top: 0; z-index: 200;
+  height: 64px;
+  overflow: hidden;
 }
-.header-logo { width: 64px; height: 64px; object-fit: contain; flex-shrink: 0; }
-.header-title { flex: 1; cursor: pointer; min-width: 0; overflow: hidden; }
-.header-title-top { font-size: 1.5rem; font-weight: 700; font-family: 'Karma', serif; color: #F7DB8D; line-height: 1.15; letter-spacing: 0px; display: block; transform: scaleX(1.1); transform-origin: left; white-space: nowrap; }
-.header-title-bottom { font-size: 1.05rem; font-weight: 700; font-family: 'Karma', serif; color: #F7DB8D; line-height: 1.3; letter-spacing: 0px; display: block; transform-origin: left; white-space: nowrap; }
-.header-sub { font-size: .58rem; color:rgba(255,255,255,0.66); margin-top: 2px; letter-spacing: .2px; }
+/* Glowing accent line at top of header */
+header::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent 0%, #2ecc71 30%, #3498db 70%, transparent 100%);
+  opacity: .7;
+}
+.header-logo { width: 44px; height: 44px; object-fit: contain; flex-shrink: 0; filter: drop-shadow(0 2px 6px rgba(0,0,0,.4)); }
+.header-title { flex: 1; cursor: pointer; min-width: 0; overflow: hidden; line-height: 1; padding: 2px 0; }
+.header-title-top {
+  font-size: 1.45rem; font-weight: 900; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: -0.5px; display: block; white-space: nowrap;
+  background: linear-gradient(135deg, #ffffff 0%, #a8d8ff 60%, #7fc6a0 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.header-title-bottom {
+  font-size: .72rem; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: 2.5px; text-transform: uppercase; display: block; white-space: nowrap;
+  color: rgba(255,255,255,.38); margin-top: 1px;
+}
+body[data-theme="light"] .header-title-top {
+  background: linear-gradient(135deg, #0d2137 0%, #1a5276 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+body[data-theme="light"] .header-title-bottom { color: rgba(0,0,0,.38); }
+body[data-theme="light"] header { background: linear-gradient(160deg, #e8f4fd 0%, #dbeef8 100%); border-bottom-color: rgba(0,0,0,.1); }
 .header-right { text-align: right; flex-shrink: 0; align-self: flex-end; padding-bottom: 2px; }
 #live-label { display: none; }
 #last-updated { font-size: .6rem; color:rgba(255,255,255,0.63); white-space: nowrap; }
@@ -242,11 +264,9 @@ header {
 .header-right { text-align: right; flex-shrink: 0; }
 #live-label { font-size: .63rem; color:rgba(255,255,255,0.78); display: block; }
 #last-updated { font-size: .57rem; color:rgba(255,255,255,0.56); margin-top: 2px; display: block; }
-#theme-toggle { position: absolute; top: 11px; right: 36px; display: flex; gap: 3px; cursor: pointer; z-index: 10; }
+#theme-toggle { position: absolute; top: 11px; right: 7px; display: flex; gap: 3px; cursor: pointer; z-index: 10; }
 .tt-icon { font-size: 1rem; line-height: 1; transition: filter .2s, opacity .2s; display: inline-block; }
 .tt-icon.inactive { filter: grayscale(1); opacity: .28; }
-#about-btn { position: absolute; top: 11px; right: 8px; background: none; border: none; cursor: pointer; font-size: 1rem; line-height: 1; opacity: .55; padding: 0; z-index: 10; transition: opacity .15s; }
-#about-btn:hover { opacity: 1; }
 /* About page */
 .about-page { padding: 20px 16px 40px; max-width: 500px; margin: 0 auto; }
 .about-logo { display: block; width: 80px; margin: 0 auto 16px; }
@@ -342,16 +362,19 @@ body[data-theme="light"] .stats-label { background: #e9ecf4; }
 /* ── FLAG IMAGES ── */
 .flag-img { display: block; object-fit: cover; pointer-events: none; }
 .flag-img.flag-inline { height: 1.1em; width: auto; display: inline-block; vertical-align: middle; margin-right: 3px; border-radius: 2px; }
-.flag-img.flag-row    { height: 7rem; width: auto; }
-.flag-img.flag-modal  { height: 5.5rem; width: auto; }
 
 /* ── TEAM ROW ── */
 .team-row { display: grid; grid-template-columns: 36px 1fr auto 18px; gap: 10px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--border-soft); cursor: pointer; transition: background .15s; position: relative; overflow: hidden; }
 .team-row-flag-bg {
-  position: absolute; top: 50%; left: 4px; transform: translateY(-50%);
+  position: absolute; top: 0; bottom: 0; left: 0;
+  width: 130px; overflow: hidden;
   opacity: .18; pointer-events: none; z-index: 0;
   -webkit-mask-image: linear-gradient(to right, black 0%, black 45%, transparent 92%);
   mask-image: linear-gradient(to right, black 0%, black 45%, transparent 92%);
+}
+.team-row-flag-bg img.flag-img {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%; object-fit: cover;
 }
 body[data-theme="light"] .team-row-flag-bg { opacity: .24; }
 .team-row:hover { background: var(--hover); }
@@ -572,10 +595,15 @@ body[data-theme="light"] .live-ev-legend { color: #9ca3af; }
 .modal { background: rgba(8,12,22,.96); backdrop-filter: blur(24px); width: 100%; max-width: 500px; border-radius: 20px 20px 0 0; border-top: 1px solid rgba(255,255,255,.12); box-shadow: 0 -20px 60px rgba(0,0,0,.5); max-height: 86vh; overflow: hidden; display: flex; flex-direction: column; animation: slideUp .25s ease; }
 .modal-header-sticky { position: relative; flex-shrink: 0; z-index: 5; overflow: hidden; }
 .modal-flag-bg {
-  position: absolute; top: 50%; left: 4px; transform: translateY(-50%);
+  position: absolute; top: 0; bottom: 0; left: 0;
+  width: 160px; overflow: hidden;
   opacity: .16; pointer-events: none; z-index: 0;
   -webkit-mask-image: linear-gradient(to right, black 0%, black 40%, transparent 88%);
   mask-image: linear-gradient(to right, black 0%, black 40%, transparent 88%);
+}
+.modal-flag-bg img.flag-img {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%; object-fit: cover;
 }
 body[data-theme="light"] .modal-flag-bg { opacity: .22; }
 .modal-content-area { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 20px; }
@@ -909,8 +937,8 @@ body[data-theme="light"] .modal-team-name { color:#111827; }
 <header>
   <img class="header-logo" src="logos/wc2026-logo.png" alt="FIFA World Cup 2026">
   <div class="header-title" onclick="switchTab('teamstats')">
-    <div class="header-title-top">World Cup</div>
-    <div class="header-title-bottom">2026</div>
+    <div class="header-title-top">World Cup 2026</div>
+    <div class="header-title-bottom">USA · Canada · Mexico</div>
   </div>
   <div class="header-right">
     <div id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode">
@@ -918,7 +946,6 @@ body[data-theme="light"] .modal-team-name { color:#111827; }
     </div>
     <div id="live-label"></div>
     <div id="last-updated">Loading…</div>
-    <button id="about-btn" onclick="switchTab('about')" title="About">ℹ️</button>
   </div>
   <div id="final-pulltab" onclick="toggleFinalChrome()"><span id="final-pulltab-chevron">▲</span></div>
 </header>
@@ -956,6 +983,7 @@ body[data-theme="light"] .modal-team-name { color:#111827; }
   <button class="tab-btn"        onclick="switchTab('results')">✅ Results</button>
   <button class="tab-btn"        onclick="switchTab('boot')">👟 Golden Boot</button>
   <button class="tab-btn"        onclick="switchTab('groups')">📋 Group Stages</button>
+  <button class="tab-btn"        onclick="switchTab('about')">ℹ️ About</button>
 </nav>
 </div>
 
@@ -1111,17 +1139,19 @@ const ALIASES = {
 };
 const norm = n => ALIASES[n] || n;
 
-// ── FLAG IMAGES (flagcdn.com SVG) ─────────────────────────────────────────────
-const FLAG_CDN = 'https://flagcdn.com/';
+// ── FLAG IMAGES (flagpedia.net) ───────────────────────────────────────────────
+const FLAG_CDN_SM = 'https://flagpedia.net/data/flags/w160/';
+const FLAG_CDN_LG = 'https://flagpedia.net/data/flags/w640/';
 function flagIso(team) {
   const s = SYNDICATE.find(x => x.team === team || x.team === norm(team));
   return s?.iso || null;
 }
-// Returns an <img> sized by CSS class. cls examples: 'flag-row' 'flag-modal' 'flag-card-bg' 'flag-inline'
+// Returns an <img> sized by CSS class. Large backgrounds use w640, inline uses w160.
 function flagImg(team, cls='flag-inline') {
   const iso = flagIso(team);
-  if (!iso) return 
-  return `<img src="${FLAG_CDN}${iso}.svg" class="flag-img ${cls}" alt="${team} flag" loading="lazy" onerror="this.style.display='none'">`;
+  if (!iso) return '';
+  const cdn = (cls === 'flag-inline') ? FLAG_CDN_SM : FLAG_CDN_LG;
+  return `<img src="${cdn}${iso}.png" class="flag-img ${cls}" alt="${team} flag" loading="lazy" onerror="this.style.display='none'">`;
 }
 
 // ── CONSTANTS ─────────────────────────────────────────────────────────────────
@@ -2600,12 +2630,10 @@ async function update() {
     const timeStr = t.toLocaleTimeString('en-GB',{hour:'numeric',minute:'2-digit',hour12:true});
     document.getElementById('last-updated').textContent = 'Last update: ' + timeStr;
     document.getElementById('error-msg').style.display='none';
-    fitHeaderTitle();
   } catch(err){
     const el=document.getElementById('error-msg');
     el.style.display='block'; el.textContent='⚠️ '+err.message;
     document.getElementById('last-updated').textContent='Update failed';
-    fitHeaderTitle();
     console.error('[wc2026]',err);
   }
   // Adaptive: faster when live
@@ -2701,30 +2729,6 @@ loadSquads();
   });
 })();
 
-// ── HEADER TITLE AUTO-FIT (shrinks line 2 only, never wraps) ───────────────────
-function fitHeaderTitle() {
-  const el = document.querySelector('.header-title-bottom');
-  if (!el) return;
-  const container = el.parentElement;
-  const STRETCH = 1.1;
-  el.style.transform = 'scaleX(1)';
-  const maxWidth = container.clientWidth;
-  const target = maxWidth / STRETCH; // unscaled width budget, so final stretched width fills maxWidth
-  let fontSize = 1.05;
-  el.style.fontSize = fontSize + 'rem';
-  let guard = 0;
-  while (el.scrollWidth > target && fontSize > 0.55 && guard < 40) {
-    fontSize -= 0.02;
-    el.style.fontSize = fontSize + 'rem';
-    guard++;
-  }
-  el.style.transform = 'scaleX(' + STRETCH + ')';
-}
-window.addEventListener('load', fitHeaderTitle);
-window.addEventListener('resize', fitHeaderTitle);
-window.addEventListener('orientationchange', () => setTimeout(fitHeaderTitle, 100));
-document.addEventListener('DOMContentLoaded', fitHeaderTitle);
-fitHeaderTitle();
 
 // ── THEME ─────────────────────────────────────────────────────────────────────
 function applyTheme(theme) {
@@ -2924,8 +2928,8 @@ function renderAbout() {
       </div>
       <div class="about-card">
         <div class="about-card-title">🏴󠁧󠁢󠁥󠁮󠁧󠁿 Flag images</div>
-        <div class="about-card-body">Country flag SVGs served by <a href="https://flagcdn.com" target="_blank">flagcdn.com</a> — flat, crisp, and free.</div>
-        <span class="about-tag">flagcdn.com</span>
+        <div class="about-card-body">Country flag images served by <a href="https://flagpedia.net" target="_blank">flagpedia.net</a> — high-resolution PNGs for every nation.</div>
+        <span class="about-tag">flagpedia.net</span>
       </div>
     </div>
 
